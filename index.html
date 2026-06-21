@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logframe Application</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans Lao', sans-serif;
+            background-color: #f3f4f6;
+        }
+        
+        .table-container::-webkit-scrollbar { width: 8px; height: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .logframe-table th, .tracking-table th, .planning-table th, .budget-table th {
+            background-color: #d1d5db;
+            color: #374151;
+            font-weight: 600;
+            border: 1px solid #9ca3af;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        .logframe-table td, .tracking-table td, .planning-table td, .budget-table td {
+            background-color: #f3f4f6;
+            border: 1px solid #9ca3af;
+            padding: 8px 12px;
+            vertical-align: top;
+        }
+        .logframe-table tr.header-row td { background-color: #d1d5db; font-weight: bold; text-align: center; color: white; }
+        .logframe-table tr.blue-ribbon td { background-color: #93c5fd; font-weight: bold; color: #1e3a8a; border-color: #60a5fa; }
+
+        .editable-cell { outline: none; transition: background-color 0.2s, box-shadow 0.2s; }
+        .editable-cell:focus { background-color: #ffffff !important; box-shadow: inset 0 0 0 2px #3b82f6; }
+        .editable-cell:hover:not(:focus) { background-color: #e0e7ff !important; cursor: text; }
+
+        td.has-list { padding: 0 !important; vertical-align: top; }
+        .list-container { display: flex; flex-direction: column; height: 100%; }
+        .list-item { outline: none; padding: 8px 12px; border-bottom: 1px solid #9ca3af; transition: all 0.2s; min-height: 45px; }
+        .list-item:last-child { border-bottom: none; }
+        .list-item:focus { background-color: #ffffff; box-shadow: inset 0 0 0 2px #3b82f6; }
+        .list-item:hover:not(:focus) { background-color: #e0e7ff; cursor: text; }
+
+        .exporting .add-btn, .exporting .hide-on-export { display: none !important; }
+        
+        /* Language Toggle Styles */
+        body.lang-en .lao-text { display: none !important; }
+        body.lang-lo .en-text { display: none !important; }
+        
+        body.lang-bi .lao-text { margin-top: 0.25rem; color: #4b5563; font-size: 0.95em; }
+        body.lang-bi .en-text { color: #1f2937; }
+        
+        body.lang-en .en-text { color: inherit; font-size: inherit; margin-top: 0; }
+        body.lang-lo .lao-text { color: inherit; font-size: inherit; margin-top: 0; }
+        
+        .en-text, .lao-text { outline: none; min-height: 1.2em; word-break: break-word; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="h-screen flex flex-col overflow-hidden lang-lo">
+
+    <div class="bg-blue-50 border-b border-blue-200 p-2 flex flex-col gap-2 shrink-0 hide-on-export">
+        <div class="flex justify-between items-center mb-1 px-2">
+            <div class="flex text-xs text-gray-600 gap-4">
+                <span class="cursor-pointer hover:text-blue-600 font-medium text-blue-800 border-b-2 border-blue-600 pb-1" data-i18n="menu-project">Project</span>
+            </div>
+            <div class="flex bg-white rounded border border-gray-300 overflow-hidden text-xs font-bold shadow-sm">
+                <button onclick="setLanguage('en')" id="lang-en" class="px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors">EN</button>
+                <div class="w-px bg-gray-300"></div>
+                <button onclick="setLanguage('lo')" id="lang-lo" class="px-3 py-1 bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors">LA</button>
+                <div class="w-px bg-gray-300"></div>
+                <button onclick="setLanguage('bi')" id="lang-bi" class="px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors" title="Bilingual / ທັງສອງພາສາ">EN/LA</button>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4 bg-white p-2 rounded shadow-sm overflow-x-auto">
+            <!-- SAVE ACTIONS -->
+            <div class="flex items-center gap-2 border-r pr-3">
+                <button onclick="saveAsHTML()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກໜ້ານີ້ໄວ້ແກ້ໄຂຕໍ່ (HTML)">
+                    <i class="fas fa-save text-lg text-blue-600 mb-1"></i> <span data-i18n="btn-save-html">Save HTML</span>
+                </button>
+                <button onclick="saveAsJSON()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຂໍ້ມູນເປັນ JSON">
+                    <i class="fas fa-file-code text-lg text-purple-600 mb-1"></i> <span data-i18n="btn-json">JSON</span>
+                </button>
+            </div>
+
+            <!-- IMPORT ACTIONS -->
+            <div class="flex items-center gap-2 border-r pr-3">
+                <button onclick="document.getElementById('importJsonInput').click()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ນຳເຂົ້າໄຟລ໌ JSON">
+                    <i class="fas fa-file-import text-lg text-orange-600 mb-1"></i> <span data-i18n="btn-import">Import</span>
+                </button>
+                <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importJSON(event)">
+            </div>
+
+            <!-- EXPORT ACTIONS -->
+            <div class="flex items-center gap-2 border-r pr-3">
+                <button onclick="openExportModal('excel')" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ສົ່ງອອກເປັນ Excel">
+                    <i class="fas fa-file-excel text-lg text-green-600 mb-1"></i> <span data-i18n="btn-excel">Excel</span>
+                </button>
+                <button onclick="openExportModal('word')" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ສົ່ງອອກເປັນ Word">
+                    <i class="fas fa-file-word text-lg text-blue-800 mb-1"></i> <span data-i18n="btn-word">Word</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2 border-r pr-3">
+                <select id="fontFamily" onchange="execCmd('fontName', this.value)" class="text-sm border border-gray-300 rounded p-1 text-gray-700 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
+                    <option value="'Noto Sans Lao', sans-serif">Noto Sans Lao</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                </select>
+                <div class="flex items-center border border-gray-300 rounded overflow-hidden h-8 bg-gray-50" title="ເລືອກສີຕົວໜັງສື">
+                    <input type="color" id="fontColor" onchange="execCmd('foreColor', this.value)" class="w-8 h-8 p-0 border-0 cursor-pointer" value="#000000">
+                </div>
+                <div class="flex bg-gray-50 rounded border border-gray-300 h-8 items-center">
+                    <button onclick="execCmd('bold')" class="w-8 h-full hover:bg-gray-200 text-gray-700 font-bold border-r border-gray-300">B</button>
+                    <button onclick="execCmd('italic')" class="w-8 h-full hover:bg-gray-200 text-gray-700 italic border-r border-gray-300">I</button>
+                    <button onclick="execCmd('underline')" class="w-8 h-full hover:bg-gray-200 text-gray-700 underline">U</button>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="switchTab('project')" id="btn-project" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
+                    <i class="fas fa-folder-open text-yellow-500 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-project">Project</span>
+                </button>
+                <button onclick="switchTab('logframe')" id="btn-logframe" class="tab-btn bg-blue-100 border-blue-300 flex flex-col items-center justify-center p-2 rounded hover:bg-blue-200 min-w-[70px] border">
+                    <i class="fas fa-table-cells text-green-600 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-logframe">Logframe</span>
+                </button>
+                <button onclick="switchTab('planning')" id="btn-planning" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
+                    <i class="fas fa-stream text-blue-500 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-planning">Planning</span>
+                </button>
+                <button onclick="switchTab('budget')" id="btn-budget" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
+                    <i class="fas fa-file-invoice-dollar text-green-700 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-budget">Budget</span>
+                </button>
+                <button onclick="switchTab('tracking')" id="btn-tracking" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
+                    <i class="fas fa-chart-line text-purple-600 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-tracking">Tracking</span>
+                </button>
+                <button onclick="switchTab('settings')" id="btn-settings" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent ml-2 border-l-2">
+                    <i class="fas fa-cog text-gray-500 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-settings">Settings</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex-1 overflow-hidden relative bg-white">
+        <!-- PROJECT TAB -->
+        <div id="tab-project" class="tab-content hidden w-full h-full p-6 overflow-y-auto">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2" data-i18n="lbl-proj-info">Project Information</h2>
+            <div class="bg-gray-50 p-4 rounded-lg border shadow-sm max-w-3xl">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="lbl-proj-title">Project Title</label>
+                        <input id="proj-title-en" type="text" class="en-text mb-2 w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500" value="Women Empowerment Initiative">
+                        <input id="proj-title-lo" type="text" class="lao-text w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500" value="ໂຄງການສົ່ງເສີມຄວາມເຂັ້ມແຂງແມ່ຍິງ">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="lbl-proj-code">Project Code</label>
+                        <input id="proj-code" type="text" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500" value="WEI-2026-01">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="lbl-proj-desc">Description</label>
+                        <textarea id="proj-desc-en" class="en-text mb-2 w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500" rows="3">A comprehensive program aimed at achieving gender equality and empowering women and girls across all spheres of life.</textarea>
+                        <textarea id="proj-desc-lo" class="lao-text w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500" rows="3">ໂຄງການຮອບດ້ານທີ່ແນໃສ່ການບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແກ່ແມ່ຍິງ ແລະ ເດັກຍິງໃນທຸກຂົງເຂດ</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div id="tab-settings" class="tab-content hidden w-full h-full p-6 overflow-y-auto">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2" data-i18n="tab-settings">Settings</h2>
+            
+            <div class="bg-gray-50 p-6 rounded-lg border shadow-sm max-w-4xl">
+                <h3 class="text-lg font-bold text-gray-700 mb-2 border-b pb-2" data-i18n="lbl-custom-headers">Customize Logframe Headers</h3>
+                <p class="text-sm text-gray-600 mb-6" data-i18n="desc-custom-headers">Change the default terms for the logical framework levels to match your project's specific terminology.</p>
+                
+                <div class="grid grid-cols-12 gap-4 font-bold text-gray-700 mb-2 px-2 text-sm uppercase tracking-wider">
+                    <div class="col-span-4" data-i18n="lbl-level">Level</div>
+                    <div class="col-span-4" data-i18n="lbl-en">English (EN)</div>
+                    <div class="col-span-4" data-i18n="lbl-lo">Lao (LA)</div>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="grid grid-cols-12 gap-4 items-center bg-white p-3 border rounded shadow-sm">
+                        <div class="col-span-4 font-semibold text-gray-800 px-2" data-i18n="lbl-lvl1">Level 1 (Highest)</div>
+                        <div class="col-span-4"><input type="text" id="set-goal-en" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="Goals" oninput="updateCustomHeader('en', 'th-goals', this.value)"></div>
+                        <div class="col-span-4"><input type="text" id="set-goal-lo" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="ເປົ້າໝາຍ (Goals)" oninput="updateCustomHeader('lo', 'th-goals', this.value)"></div>
+                    </div>
+                    <div class="grid grid-cols-12 gap-4 items-center bg-white p-3 border rounded shadow-sm">
+                        <div class="col-span-4 font-semibold text-gray-800 px-2" data-i18n="lbl-lvl2">Level 2</div>
+                        <div class="col-span-4"><input type="text" id="set-purp-en" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="Purposes" oninput="updateCustomHeader('en', 'th-purposes', this.value)"></div>
+                        <div class="col-span-4"><input type="text" id="set-purp-lo" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="ຈຸດປະສົງ (Purposes)" oninput="updateCustomHeader('lo', 'th-purposes', this.value)"></div>
+                    </div>
+                    <div class="grid grid-cols-12 gap-4 items-center bg-white p-3 border rounded shadow-sm">
+                        <div class="col-span-4 font-semibold text-gray-800 px-2" data-i18n="lbl-lvl3">Level 3</div>
+                        <div class="col-span-4"><input type="text" id="set-out-en" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="Outputs" oninput="updateCustomHeader('en', 'th-outputs', this.value)"></div>
+                        <div class="col-span-4"><input type="text" id="set-out-lo" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="ຜົນໄດ້ຮັບ (Outputs)" oninput="updateCustomHeader('lo', 'th-outputs', this.value)"></div>
+                    </div>
+                    <div class="grid grid-cols-12 gap-4 items-center bg-white p-3 border rounded shadow-sm">
+                        <div class="col-span-4 font-semibold text-gray-800 px-2" data-i18n="lbl-lvl4">Level 4 (Actions)</div>
+                        <div class="col-span-4"><input type="text" id="set-act-en" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="Activities" oninput="updateCustomHeader('en', 'th-activities', this.value)"></div>
+                        <div class="col-span-4"><input type="text" id="set-act-lo" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="ກິດຈະກຳ (Activities)" oninput="updateCustomHeader('lo', 'th-activities', this.value)"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOGFRAME TAB -->
+        <div id="tab-logframe" class="tab-content w-full h-full overflow-hidden flex flex-col">
+            <div class="table-container flex-1 overflow-auto bg-gray-200 p-2">
+                <table class="logframe-table w-full border-collapse min-w-[1000px] text-sm">
+                    <colgroup>
+                        <col style="width: 30%;">
+                        <col style="width: 35%;">
+                        <col style="width: 20%;">
+                        <col style="width: 15%;">
+                    </colgroup>
+                    
+                    <tbody>
+                        <tr>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-goals">Goals</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
+                        </tr>
+                        <tr class="sync-row">
+                            <td class="editable-cell" contenteditable="true">
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal:</span> Achieve gender equality and empower all women and girls</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
+                            </td>
+                            <td class="bg-gray-100 relative group align-top has-list p-0">
+                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                            </td>
+                            <td class="bg-gray-100 relative group align-top has-list p-0">
+                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                            </td>
+                            <td class="bg-gray-100 relative group align-top has-list p-0">
+                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                            </td>
+                        </tr>
+                        <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
+                    </tbody>
+
+                    <tbody>
+                        <tr>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-purposes">Purposes</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
+                        </tr>
+                        <tr class="purpose-row sync-row" data-prefix="1">
+                            <td class="editable-cell" contenteditable="true">
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.</span> End all forms of discrimination against all women and girls</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
+                            </td>
+                            <td class="bg-white relative group align-top has-list p-0">
+                                <div class="list-container">
+                                    <div class="list-item" contenteditable="true">
+                                        <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1</span> Legal frameworks in place to promote equality</div>
+                                        <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1</span> ມີກອບກົດໝາຍເພື່ອສົ່ງເສີມຄວາມສະເໝີພາບ</div>
+                                    </div>
+                                </div>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                            </td>
+                            <td class="bg-white relative group align-top has-list p-0">
+                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                            </td>
+                            <td class="bg-white relative group align-top has-list p-0">
+                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                            </td>
+                        </tr>
+                        <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
+                    </tbody>
+
+                    <tbody>
+                        <tr>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-outputs">Outputs</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
+                        </tr>
+                        <tr class="blue-ribbon">
+                            <td colspan="4" class="!text-left editable-cell" contenteditable="true">
+                                <div class="en-text">End all forms of discrimination against all women and girls everywhere</div>
+                                <div class="lao-text">ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງໃນທຸກຫົນທຸກແຫ່ງ</div>
+                            </td>
+                        </tr>
+                        <tr class="output-row sync-row" data-prefix="1.1">
+                            <td class="!bg-white editable-cell" contenteditable="true">
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1:</span> Legal reviews conducted.</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
+                            </td>
+                            <td class="!bg-white relative group align-top has-list p-0">
+                                <div class="list-container">
+                                    <div class="list-item" contenteditable="true">
+                                        <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1</span> Number of reviews completed.</div>
+                                        <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1</span> ຈຳນວນການທົບທວນທີ່ສຳເລັດ.</div>
+                                    </div>
+                                </div>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                            </td>
+                            <td class="!bg-white relative group align-top has-list p-0">
+                                <div class="list-container">
+                                    <div class="list-item" contenteditable="true">
+                                        <div class="en-text">Project Reports</div>
+                                        <div class="lao-text">ບົດລາຍງານໂຄງການ</div>
+                                    </div>
+                                </div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                            </td>
+                            <td class="!bg-white relative group align-top has-list p-0">
+                                <div class="list-container">
+                                    <div class="list-item" contenteditable="true">
+                                        <div class="en-text">Government willingness.</div>
+                                        <div class="lao-text">ຄວາມເຕັມໃຈຂອງລັດຖະບານ</div>
+                                    </div>
+                                </div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                            </td>
+                        </tr>
+                        <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
+                    </tbody>
+
+                    <tbody>
+                        <tr>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-activities">Activities</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-resources">Resources</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-budget">Budget</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
+                        </tr>
+                        <tr class="blue-ribbon">
+                            <td colspan="4" class="!text-left editable-cell" contenteditable="true">
+                                <div class="en-text">Output 1.1: Legal reviews conducted.</div>
+                                <div class="lao-text">ຜົນໄດ້ຮັບ 1.1: ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="!bg-white editable-cell" contenteditable="true">
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act 1.1.1:</span> Hire legal consultants</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ 1.1.1:</span> ຈ້າງທີ່ປຶກສາດ້ານກົດໝາຍ</div>
+                            </td>
+                            <td class="!bg-white editable-cell" contenteditable="true">
+                                <div class="en-text">Legal Consultants (4 Months)</div>
+                                <div class="lao-text">ທີ່ປຶກສາກົດໝາຍ (4 ເດືອນ)</div>
+                            </td>
+                            <td class="!bg-white editable-cell" contenteditable="true">
+                                <div class="en-text">10,000.00 USD</div>
+                                <div class="lao-text">10,000.00 USD</div>
+                            </td>
+                            <td class="!bg-white editable-cell" contenteditable="true">
+                                <div class="en-text">Qualified consultants are available.</div>
+                                <div class="lao-text">ມີທີ່ປຶກສາທີ່ມີຄວາມສາມາດພຽງພໍ.</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-gray-100 border-t p-1 flex justify-between items-center text-xs text-gray-600 px-4 shrink-0">
+                <span data-i18n="lbl-ready">Ready</span>
+                <div class="flex gap-4"><span>100%</span> <i class="fas fa-search-plus cursor-pointer hover:text-gray-900"></i></div>
+            </div>
+        </div>
+
+        <!-- PLANNING TAB -->
+        <div id="tab-planning" class="tab-content hidden w-full h-full p-6 overflow-y-auto">
+            <div class="flex justify-between items-end mb-4 border-b pb-2">
+                <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-planning">Planning</h2>
+                <button onclick="syncPlanningFromLogframe()" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors shadow-sm text-sm font-medium">
+                    <i class="fas fa-sync-alt mr-1"></i> <span data-i18n="btn-sync">Sync from Logframe</span>
+                </button>
+            </div>
+            <div class="bg-white border rounded-lg shadow-sm overflow-hidden">
+                <table class="min-w-full text-sm text-left planning-table">
+                    <thead class="bg-blue-50 border-b">
+                        <tr>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/3" data-i18n="th-activities">Activity</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-32 text-center" data-i18n="th-responsible">Responsible</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center">Start</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center">End</th>
+                            <th class="px-2 py-3 font-semibold text-gray-700 text-center" colspan="4">Q1 2026</th>
+                        </tr>
+                        <tr class="bg-gray-50 border-b text-xs text-gray-500">
+                            <th class="border-r"></th><th class="border-r"></th><th class="border-r"></th><th class="border-r"></th>
+                            <th class="px-2 py-1 border-r text-center">Jan</th>
+                            <th class="px-2 py-1 border-r text-center">Feb</th>
+                            <th class="px-2 py-1 border-r text-center">Mar</th>
+                            <th class="px-2 py-1 text-center">Apr</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- BUDGET TAB -->
+        <div id="tab-budget" class="tab-content hidden w-full h-full p-6 overflow-y-auto">
+            <div class="flex justify-between items-end mb-4 border-b pb-2">
+                <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-budget">Budget</h2>
+                <button onclick="syncBudget()" class="bg-green-50 text-green-600 border border-green-200 px-3 py-1.5 rounded hover:bg-green-100 transition-colors shadow-sm text-sm font-medium">
+                    <i class="fas fa-sync-alt mr-1"></i> <span data-i18n="btn-sync">Sync from Logframe</span>
+                </button>
+            </div>
+            <div class="bg-white border rounded-lg shadow-sm overflow-hidden">
+                <table class="min-w-full text-sm text-left budget-table">
+                    <thead class="bg-green-50 border-b">
+                        <tr>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/3" data-i18n="th-activities">Activities</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/4" data-i18n="th-resources">Resources</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-right" data-i18n="th-unit">Unit</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-32 text-right">Unit Cost</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-right">Qty</th>
+                            <th class="px-4 py-3 font-semibold text-gray-900 w-32 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="budget-tbody" class="divide-y"></tbody>
+                    <tfoot class="bg-gray-200 font-bold border-t-2 border-gray-400">
+                        <tr>
+                            <td colspan="5" class="px-4 py-3 text-right border-r">Grand Total:</td>
+                            <td id="budget-grand-total" class="px-4 py-3 text-right text-green-700">0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- TRACKING TAB -->
+        <div id="tab-tracking" class="tab-content hidden w-full h-full p-6 overflow-y-auto">
+            <div class="flex justify-between items-end mb-4 border-b pb-2">
+                <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-tracking">Indicators Tracking</h2>
+                <div class="flex gap-2">
+                    <button onclick="addTrackingYear()" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors shadow-sm text-sm font-medium">
+                        <i class="fas fa-plus mr-1"></i> <span data-i18n="btn-add-year">Add Year</span>
+                    </button>
+                    <button onclick="syncTracking()" class="bg-purple-50 text-purple-600 border border-purple-200 px-3 py-1.5 rounded hover:bg-purple-100 transition-colors shadow-sm text-sm font-medium">
+                        <i class="fas fa-sync-alt mr-1"></i> <span data-i18n="btn-sync">Sync from Logframe</span>
+                    </button>
+                </div>
+            </div>
+            <div class="bg-white border rounded-lg shadow-sm overflow-hidden overflow-x-auto">
+                <table class="min-w-full text-sm text-left tracking-table">
+                    <thead class="bg-purple-50 border-b">
+                        <tr>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/3 min-w-[250px]" data-i18n="th-hierarchy">Hierarchy / Indicator</th>
+                            <th class="px-2 py-3 font-semibold text-gray-700 border-r w-16 text-center" data-i18n="th-unit">Unit</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center" data-i18n="th-baseline">Baseline</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center th-target-overall bg-purple-100" data-i18n="th-target-overall">Overall Target</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center th-actual-overall bg-purple-100" data-i18n="th-actual-overall">Overall Actual</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center" data-i18n="th-progress">Progress</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 w-48" data-i18n="th-status">Status / Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tracking-tbody" class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Export Options Modal -->
+    <div id="export-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-[400px]">
+            <h3 class="text-lg font-bold mb-2 text-gray-800" data-i18n="lbl-export-options">Export Options</h3>
+            <p class="text-sm text-gray-600 mb-6" data-i18n="desc-export-options">Select how you want to export the data:</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="confirmExport('format')" class="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 py-3 px-4 rounded text-left flex items-center transition-colors">
+                    <i class="fas fa-paint-roller w-8 text-center text-xl mr-2"></i>
+                    <div>
+                        <div class="font-bold" data-i18n="btn-export-format">With Formatting</div>
+                        <div class="text-xs font-normal text-blue-600 mt-1" data-i18n="desc-export-format">Keep colors, bold text, and layout</div>
+                    </div>
+                </button>
+                <button onclick="confirmExport('raw')" class="w-full bg-gray-50 hover:bg-gray-100 border border-gray-300 text-gray-700 py-3 px-4 rounded text-left flex items-center transition-colors">
+                    <i class="fas fa-table w-8 text-center text-xl mr-2 text-gray-500"></i>
+                    <div>
+                        <div class="font-bold" data-i18n="btn-export-raw">Raw Data Only</div>
+                        <div class="text-xs font-normal text-gray-500 mt-1" data-i18n="desc-export-raw">Plain text without colors</div>
+                    </div>
+                </button>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeExportModal()" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-medium transition-colors" data-i18n="btn-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // -----------------------------------------------------------------
+        // Translations (Bilingual Support)
+        // -----------------------------------------------------------------
+        const dict = {
+            'en': {
+                'menu-project': 'Project',
+                'tab-project': 'Project', 'tab-logframe': 'Logframe', 'tab-tracking': 'Tracking', 'tab-planning': 'Planning', 'tab-budget': 'Budget', 'tab-settings': 'Settings',
+                'btn-save-html': 'Save HTML', 'btn-json': 'JSON', 'btn-import': 'Import', 'btn-excel': 'Excel', 'btn-word': 'Word',
+                'btn-add': 'Add', 'btn-sync': 'Sync from Logframe', 'btn-add-year': 'Add Year',
+                'lbl-proj-info': 'Project Information', 'lbl-proj-title': 'Project Title', 'lbl-proj-code': 'Project Code', 'lbl-proj-desc': 'Description',
+                'lbl-custom-headers': 'Customize Logframe Headers', 'desc-custom-headers': 'Change the default terms for the logical framework levels to match your project\'s specific terminology.',
+                'lbl-level': 'Level', 'lbl-en': 'English (EN)', 'lbl-lo': 'Lao (LA)',
+                'lbl-lvl1': 'Level 1 (Highest)', 'lbl-lvl2': 'Level 2', 'lbl-lvl3': 'Level 3', 'lbl-lvl4': 'Level 4 (Actions)',
+                'th-goals': 'Goals', 'th-purposes': 'Purposes', 'th-outputs': 'Outputs', 'th-activities': 'Activities',
+                'th-indicators': 'Indicators', 'th-verification': 'Verification sources', 'th-assumptions': 'Assumptions',
+                'th-resources': 'Resources', 'th-budget': 'Budget', 'th-responsible': 'Responsible',
+                'th-hierarchy': 'Hierarchy / Indicator', 'th-baseline': 'Baseline', 'th-target': 'Target', 'th-actual': 'Actual Progress', 'th-progress': 'Progress (%)', 'th-status': 'Status / Notes',
+                'th-target-overall': 'Overall Target', 'th-actual-overall': 'Overall Actual',
+                'th-target-small': 'Target', 'th-actual-small': 'Actual',
+                'th-unit': 'Unit',
+                'lbl-export-options': 'Export Options',
+                'desc-export-options': 'Select how you want to export the data:',
+                'btn-export-format': 'With Formatting',
+                'desc-export-format': 'Keep colors, bold text, and layout (.xls / .doc)',
+                'btn-export-raw': 'Raw Data Only',
+                'desc-export-raw': 'Plain text without colors (.xlsx / .doc)',
+                'btn-cancel': 'Cancel',
+                'lbl-ready': 'Ready'
+            },
+            'lo': {
+                'menu-project': 'ໂຄງການ',
+                'tab-project': 'ໂຄງການ', 'tab-logframe': 'Logframe', 'tab-tracking': 'ຕິດຕາມຕົວຊີ້ວັດ', 'tab-planning': 'ແຜນວຽກ', 'tab-budget': 'ງົບປະມານ', 'tab-settings': 'ຕັ້ງຄ່າ',
+                'btn-save-html': 'ບັນທຶກ HTML', 'btn-json': 'JSON', 'btn-import': 'ນຳເຂົ້າ', 'btn-excel': 'Excel', 'btn-word': 'Word',
+                'btn-add': 'ເພີ່ມ', 'btn-sync': 'ດຶງຂໍ້ມູນຈາກ Logframe', 'btn-add-year': 'ເພີ່ມປີ',
+                'lbl-proj-info': 'ຂໍ້ມູນໂຄງການ', 'lbl-proj-title': 'ຊື່ໂຄງການ', 'lbl-proj-code': 'ລະຫັດໂຄງການ', 'lbl-proj-desc': 'ລາຍລະອຽດ',
+                'lbl-custom-headers': 'ຕັ້ງຄ່າຊື່ຫົວຂໍ້ຫຼັກ', 'desc-custom-headers': 'ປັບປ່ຽນຄຳສັບມາດຕະຖານຂອງໂຄງສ້າງ Logframe ໃຫ້ກົງກັບໂຄງການຂອງທ່ານ (ຕົວຢ່າງ: ປ່ຽນ ຈຸດປະສົງ ເປັນ ຜົນໄດ້ຮັບຫຼັກ).',
+                'lbl-level': 'ລະດັບຊັ້ນ', 'lbl-en': 'ພາສາອັງກິດ (EN)', 'lbl-lo': 'ພາສາລາວ (LA)',
+                'lbl-lvl1': 'ລະດັບ 1 (ສູງສຸດ)', 'lbl-lvl2': 'ລະດັບ 2', 'lbl-lvl3': 'ລະດັບ 3', 'lbl-lvl4': 'ລະດັບ 4 (ກິດຈະກຳ)',
+                'th-goals': 'ເປົ້າໝາຍ (Goals)', 'th-purposes': 'ຈຸດປະສົງ (Purposes)', 'th-outputs': 'ຜົນໄດ້ຮັບ (Outputs)', 'th-activities': 'ກິດຈະກຳ (Activities)',
+                'th-indicators': 'ຕົວຊີ້ວັດ (Indicators)', 'th-verification': 'ແຫຼ່ງຢັ້ງຢືນ (Verification)', 'th-assumptions': 'ຂໍ້ສົມມຸດຕິຖານ (Assumptions)',
+                'th-resources': 'ຊັບພະຍາກອນ (Resources)', 'th-budget': 'ງົບປະມານ (Budget)', 'th-responsible': 'ຜູ້ຮັບຜິດຊອບ',
+                'th-hierarchy': 'ໂຄງສ້າງ / ຕົວຊີ້ວັດ', 'th-baseline': 'ຄ່າພື້ນຖານ', 'th-target': 'ເປົ້າໝາຍ', 'th-actual': 'ຜົນຕົວຈິງ', 'th-progress': 'ຄວາມຄືບໜ້າ', 'th-status': 'ສະຖານະ/ໝາຍເຫດ',
+                'th-target-overall': 'ເປົ້າໝາຍລວມ', 'th-actual-overall': 'ຜົນລວມຕົວຈິງ',
+                'th-target-small': 'ເປົ້າໝາຍ', 'th-actual-small': 'ຜົນຕົວຈິງ',
+                'th-unit': 'ຫົວໜ່ວຍ',
+                'lbl-export-options': 'ຕົວເລືອກການສົ່ງອອກ',
+                'desc-export-options': 'ກະລຸນາເລືອກຮູບແບບທີ່ທ່ານຕ້ອງການສົ່ງອອກ:',
+                'btn-export-format': 'ສົ່ງອອກພ້ອມຮູບແບບ',
+                'desc-export-format': 'ຮັກສາສີ, ຕົວໜັງສືເຂັ້ມ ແລະ ການຈັດໜ້າ (.xls / .doc)',
+                'btn-export-raw': 'ສົ່ງອອກສະເພາະຂໍ້ມູນ (Raw)',
+                'desc-export-raw': 'ຕາຕະລາງທຳມະດາ ບໍ່ມີສີສັນ (.xlsx / .doc)',
+                'btn-cancel': 'ຍົກເລີກ',
+                'lbl-ready': 'ພ້ອມໃຊ້ງານ'
+            }
+        };
+
+        let currentLang = 'lo';
+        let trackingYearCount = 0;
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.body.className = `h-screen flex flex-col overflow-hidden lang-${lang}`;
+            
+            // Update button styles
+            document.getElementById('lang-en').className = lang === 'en' ? 'px-3 py-1 bg-blue-100 text-blue-800 transition-colors' : 'px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors';
+            document.getElementById('lang-lo').className = lang === 'lo' ? 'px-3 py-1 bg-blue-100 text-blue-800 transition-colors' : 'px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors';
+            document.getElementById('lang-bi').className = lang === 'bi' ? 'px-3 py-1 bg-blue-100 text-blue-800 transition-colors' : 'px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors';
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                let textToSet = '';
+                
+                if (lang === 'bi') {
+                    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') {
+                        const enStr = dict['en'][key] || '';
+                        const loStr = dict['lo'][key] || '';
+                        
+                        if(loStr.toLowerCase().includes(enStr.toLowerCase()) || enStr === '') textToSet = loStr;
+                        else if (enStr.length < 15 && loStr.length < 15) textToSet = `${enStr} / ${loStr}`;
+                        else textToSet = `${enStr}\n${loStr}`;
+                    }
+                } else {
+                    if (dict[lang][key]) textToSet = dict[lang][key];
+                }
+
+                if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') {
+                    if(textToSet) el.innerText = textToSet;
+                }
+            });
+
+            document.querySelectorAll('th[data-y]').forEach(th => {
+                const y = th.dataset.y;
+                const isTarget = th.dataset.type === 'target';
+                let mainText = '';
+                if(lang === 'en') mainText = isTarget ? `Year ${y} Target` : `Year ${y} Actual`;
+                else if(lang === 'lo') mainText = isTarget ? `ເປົ້າໝາຍ ປີ ${y}` : `ຜົນຕົວຈິງ ປີ ${y}`;
+                else mainText = isTarget ? `Year ${y} Target\nເປົ້າໝາຍ ປີ ${y}` : `Year ${y} Actual\nຜົນຕົວຈິງ ປີ ${y}`;
+
+                const editableDiv = th.querySelector('.editable-cell');
+                if(editableDiv) editableDiv.innerText = mainText;
+            });
+        }
+
+        function updateCustomHeader(lang, key, value) {
+            if(value.trim() === '') return;
+            dict[lang][key] = value;
+            if (currentLang === lang || currentLang === 'bi') setLanguage(currentLang);
+        }
+
+        // Helper functions for dynamic header parsing (ignoring display:none via textContent)
+        function isGoalRow(text) {
+            const t = text.toLowerCase();
+            const en = document.getElementById('set-goal-en').value.toLowerCase().split(/[ \(\)]/)[0];
+            const lo = document.getElementById('set-goal-lo').value.toLowerCase().split(/[ \(\)]/)[0];
+            return t.includes('goal') || t.includes('ເປົ້າໝາຍ') || (en && t.includes(en)) || (lo && t.includes(lo));
+        }
+        function isOutputRow(text) {
+            const t = text.toLowerCase();
+            const en = document.getElementById('set-out-en').value.toLowerCase().split(/[ \(\)]/)[0];
+            const lo = document.getElementById('set-out-lo').value.toLowerCase().split(/[ \(\)]/)[0];
+            return t.includes('output') || t.includes('ຜົນໄດ້ຮັບ') || (en && t.includes(en)) || (lo && t.includes(lo));
+        }
+        function isActivityRow(text) {
+            const t = text.toLowerCase();
+            const en = document.getElementById('set-act-en').value.toLowerCase().split(/[ \(\)]/)[0];
+            const lo = document.getElementById('set-act-lo').value.toLowerCase().split(/[ \(\)]/)[0];
+            return t.includes('act') || t.includes('ກິດຈະກຳ') || (en && t.includes(en)) || (lo && t.includes(lo));
+        }
+        function isPurposeRow(text) {
+            return text.match(/^[0-9]+\./) && !isOutputRow(text) && !isActivityRow(text);
+        }
+
+        // -----------------------------------------------------------------
+        // Export Functions & Modal
+        // -----------------------------------------------------------------
+        let pendingExportType = '';
+
+        function openExportModal(type) {
+            pendingExportType = type;
+            const modal = document.getElementById('export-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('export-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmExport(mode) {
+            closeExportModal();
+            if (pendingExportType === 'excel') {
+                if (mode === 'format') exportExcelFormatted();
+                else exportExcelRaw();
+            } else if (pendingExportType === 'word') {
+                exportWord(mode);
+            }
+        }
+
+        function saveAsHTML() {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'Logframe_Project.html'; a.click(); URL.revokeObjectURL(url);
+        }
+
+        function saveAsJSON() {
+            const customHeaders = {
+                en: {
+                    'th-goals': document.getElementById('set-goal-en').value,
+                    'th-purposes': document.getElementById('set-purp-en').value,
+                    'th-outputs': document.getElementById('set-out-en').value,
+                    'th-activities': document.getElementById('set-act-en').value
+                },
+                lo: {
+                    'th-goals': document.getElementById('set-goal-lo').value,
+                    'th-purposes': document.getElementById('set-purp-lo').value,
+                    'th-outputs': document.getElementById('set-out-lo').value,
+                    'th-activities': document.getElementById('set-act-lo').value
+                }
+            };
+
+            const data = { 
+                version: "1.5", 
+                projectTitleEn: document.getElementById('proj-title-en')?.value || '',
+                projectTitleLo: document.getElementById('proj-title-lo')?.value || '',
+                projectCode: document.getElementById('proj-code')?.value || '', 
+                projectDescEn: document.getElementById('proj-desc-en')?.value || '',
+                projectDescLo: document.getElementById('proj-desc-lo')?.value || '',
+                logframeHTML: document.querySelector('.logframe-table').innerHTML,
+                trackingHTML: document.querySelector('.tracking-table') ? document.querySelector('.tracking-table').innerHTML : '',
+                trackingYearCount: trackingYearCount,
+                customHeaders: customHeaders
+            };
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'Logframe_Data.json'; a.click(); URL.revokeObjectURL(url);
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.projectTitleEn !== undefined) document.getElementById('proj-title-en').value = data.projectTitleEn;
+                    if (data.projectTitleLo !== undefined) document.getElementById('proj-title-lo').value = data.projectTitleLo;
+                    if (data.projectDescEn !== undefined) document.getElementById('proj-desc-en').value = data.projectDescEn;
+                    if (data.projectDescLo !== undefined) document.getElementById('proj-desc-lo').value = data.projectDescLo;
+                    if (data.projectCode !== undefined) document.getElementById('proj-code').value = data.projectCode;
+                    
+                    // Fallback for older JSON versions
+                    if (data.projectTitle !== undefined) {
+                         document.getElementById('proj-title-en').value = data.projectTitle;
+                         document.getElementById('proj-title-lo').value = data.projectTitle;
+                    }
+                    if (data.projectDesc !== undefined) {
+                         document.getElementById('proj-desc-en').value = data.projectDesc;
+                         document.getElementById('proj-desc-lo').value = data.projectDesc;
+                    }
+
+                    if (data.logframeHTML) {
+                        document.querySelector('.logframe-table').innerHTML = data.logframeHTML;
+                        setTimeout(syncAllHeights, 100);
+                    }
+                    if (data.trackingHTML && document.querySelector('.tracking-table')) {
+                        document.querySelector('.tracking-table').innerHTML = data.trackingHTML;
+                    }
+                    if (data.trackingYearCount !== undefined) trackingYearCount = data.trackingYearCount;
+                    
+                    if (data.customHeaders) {
+                        document.getElementById('set-goal-en').value = data.customHeaders.en['th-goals'];
+                        document.getElementById('set-purp-en').value = data.customHeaders.en['th-purposes'];
+                        document.getElementById('set-out-en').value = data.customHeaders.en['th-outputs'];
+                        document.getElementById('set-act-en').value = data.customHeaders.en['th-activities'];
+                        
+                        document.getElementById('set-goal-lo').value = data.customHeaders.lo['th-goals'];
+                        document.getElementById('set-purp-lo').value = data.customHeaders.lo['th-purposes'];
+                        document.getElementById('set-out-lo').value = data.customHeaders.lo['th-outputs'];
+                        document.getElementById('set-act-lo').value = data.customHeaders.lo['th-activities'];
+                        
+                        Object.keys(data.customHeaders.en).forEach(k => dict['en'][k] = data.customHeaders.en[k]);
+                        Object.keys(data.customHeaders.lo).forEach(k => dict['lo'][k] = data.customHeaders.lo[k]);
+                    }
+
+                    setLanguage(currentLang);
+                    alert(currentLang === 'lo' ? 'ນຳເຂົ້າຂໍ້ມູນ JSON ສຳເລັດແລ້ວ!' : 'JSON imported successfully!');
+                } catch (err) {
+                    alert(currentLang === 'lo' ? 'ເກີດຂໍ້ຜິດພາດໃນການອ່ານໄຟລ໌ JSON' : 'Error reading JSON file');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function getCleanedTableHTML(isRaw = false) {
+            const activeTab = document.querySelector('.tab-content:not(.hidden)');
+            const tableSource = activeTab ? activeTab.querySelector('table') : document.querySelector('.logframe-table');
+            if (!tableSource) return "<table><tr><td>No data</td></tr></table>";
+            
+            const tableClone = tableSource.cloneNode(true);
+            
+            // Clean up UI buttons and empty rows
+            tableClone.querySelectorAll('.add-btn').forEach(btn => btn.remove());
+            
+            // Remove languages not currently selected to make export match screen exactly
+            if (currentLang === 'en') {
+                tableClone.querySelectorAll('.lao-text').forEach(el => el.remove());
+            } else if (currentLang === 'lo') {
+                tableClone.querySelectorAll('.en-text').forEach(el => el.remove());
+            }
+
+            tableClone.querySelectorAll('.list-container').forEach(container => {
+                const items = Array.from(container.querySelectorAll('.list-item'));
+                const newCellContent = document.createElement('div');
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.innerHTML = item.innerHTML;
+                    div.style.marginBottom = '8px';
+                    newCellContent.appendChild(div);
+                });
+                container.parentNode.replaceChild(newCellContent, container);
+            });
+
+            if (isRaw) {
+                tableClone.removeAttribute('class');
+                tableClone.querySelectorAll('*').forEach(el => {
+                    el.removeAttribute('class');
+                    el.removeAttribute('style');
+                });
+            }
+
+            return tableClone.outerHTML;
+        }
+
+        function exportExcelRaw() {
+            if (typeof XLSX === 'undefined') return;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = getCleanedTableHTML(true);
+            const tableToExport = tempDiv.querySelector('table');
+            tableToExport.querySelectorAll('tr').forEach(tr => {
+                if(tr.querySelector('td') && tr.querySelector('td').colSpan >= 4 && tr.innerText.trim() === '') tr.remove();
+            });
+            const wb = XLSX.utils.table_to_book(tableToExport, {sheet: "ExportData"});
+            XLSX.writeFile(wb, 'Logframe_Export.xlsx');
+        }
+
+        function exportExcelFormatted() {
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>table { border-collapse: collapse; } th, td { border: 1px solid #9ca3af; padding: 5px; vertical-align: top; } th { background-color: #d1d5db; font-weight: bold; } tr.blue-ribbon td { background-color: #93c5fd; font-weight: bold; color: #1e3a8a; } .lao-text{ color: #4b5563; font-size: 0.95em; }</style></head><body>";
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = getCleanedTableHTML(false);
+            const tableToExport = tempDiv.querySelector('table');
+            tableToExport.querySelectorAll('tr').forEach(tr => {
+                if(tr.querySelector('td') && tr.querySelector('td').colSpan >= 4 && tr.innerText.trim() === '') tr.remove();
+            });
+            const sourceHTML = header + tableToExport.outerHTML + "</body></html>";
+            const blob = new Blob([sourceHTML], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const fileDownload = document.createElement("a");
+            fileDownload.href = url;
+            fileDownload.download = 'Logframe_Export.xls';
+            fileDownload.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportWord(mode) {
+            let style = "";
+            if (mode === 'format') {
+                style = "<style>table { border-collapse: collapse; width: 100%; font-family: 'Noto Sans Lao', sans-serif; font-size: 11pt; } th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; } th { background-color: #d1d5db; } tr.blue-ribbon td { background-color: #93c5fd; font-weight: bold; } .lao-text{ color: #4b5563; font-size: 0.95em;}</style>";
+            } else {
+                style = "<style>table { border-collapse: collapse; width: 100%; font-family: 'Noto Sans Lao', sans-serif; font-size: 11pt; } th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; } .lao-text{ font-size: 0.95em; }</style>";
+            }
+
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export</title>" + style + "</head><body>";
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = getCleanedTableHTML(mode === 'raw');
+            const tableToExport = tempDiv.querySelector('table');
+            tableToExport.querySelectorAll('tr').forEach(tr => {
+                if(tr.querySelector('td') && tr.querySelector('td').colSpan >= 4 && tr.innerText.trim() === '') tr.remove();
+            });
+            const sourceHTML = header + tableToExport.outerHTML + "</body></html>";
+            
+            // For MS Word doc, we use a Blob with the correct mime type
+            const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const fileDownload = document.createElement("a");
+            fileDownload.href = url;
+            fileDownload.download = 'Logframe_Export.doc';
+            fileDownload.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Formatting & Tab Navigation
+        function execCmd(command, value = null) {
+            document.execCommand(command, false, value);
+            setTimeout(() => {
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    let node = sel.anchorNode;
+                    if (node && node.nodeType === 3) node = node.parentNode;
+                    const tr = node ? node.closest('tr.sync-row') : null;
+                    if (tr) syncRowHeights(tr);
+                }
+            }, 50);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-100', 'border-blue-300');
+                btn.classList.add('border-transparent');
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            activeBtn.classList.remove('border-transparent');
+            activeBtn.classList.add('bg-blue-100', 'border-blue-300');
+
+            if (tabId === 'planning') syncPlanningFromLogframe();
+            if (tabId === 'budget') syncBudget();
+            if (tabId === 'tracking') syncTracking();
+        }
+
+        function syncRowHeights(tr) {
+            const lists = tr.querySelectorAll('.list-container');
+            if (lists.length === 0) return;
+            let maxItems = 0;
+            lists.forEach(list => maxItems = Math.max(maxItems, list.querySelectorAll('.list-item').length));
+
+            lists.forEach(list => {
+                const isIndicatorList = list.closest('td').cellIndex === 1;
+                const items = list.querySelectorAll('.list-item');
+                const diff = maxItems - items.length;
+                for (let i = 0; i < diff; i++) {
+                    const newItem = document.createElement('div');
+                    newItem.className = 'list-item';
+                    newItem.contentEditable = "true";
+                    
+                    let prefixHtml = '';
+                    if (isIndicatorList && tr.dataset.prefix) {
+                        const count = list.querySelectorAll('.list-item').length;
+                        prefixHtml = `<span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${tr.dataset.prefix}.${count + 1}</span> `;
+                    }
+                    newItem.innerHTML = `<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
+                    list.appendChild(newItem);
+                }
+            });
+
+            for (let i = 0; i < maxItems; i++) {
+                let maxHeight = 0;
+                lists.forEach(list => { const item = list.querySelectorAll('.list-item')[i]; if (item) item.style.height = 'auto'; });
+                lists.forEach(list => { const item = list.querySelectorAll('.list-item')[i]; if (item) maxHeight = Math.max(maxHeight, item.offsetHeight); });
+                lists.forEach(list => { const item = list.querySelectorAll('.list-item')[i]; if (item) item.style.height = maxHeight + 'px'; });
+            }
+        }
+
+        function syncAllHeights() {
+            document.querySelectorAll('.logframe-table tr.sync-row').forEach(tr => syncRowHeights(tr));
+        }
+
+        function addItem(btn, usePrefix) {
+            const tr = btn.closest('tr');
+            const list = btn.closest('td').querySelector('.list-container');
+            const prefix = tr.dataset.prefix || '';
+            const count = list.querySelectorAll('.list-item').length;
+            
+            const newItem = document.createElement('div');
+            newItem.className = 'list-item';
+            newItem.contentEditable = "true";
+            
+            let prefixHtml = '';
+            if (usePrefix && prefix) {
+                prefixHtml = `<span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${prefix}.${count + 1}</span> `;
+            }
+            
+            newItem.innerHTML = `<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
+            list.appendChild(newItem);
+            
+            syncRowHeights(tr);
+            
+            const currentItems = list.querySelectorAll('.list-item');
+            const focusItem = currentItems[currentItems.length - 1];
+            focusItem.focus();
+            const range = document.createRange();
+            const sel = window.getSelection();
+            if(focusItem.lastChild) {
+                range.selectNodeContents(focusItem.lastChild);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+
+        function setupAutoNumbering() {
+            const logframeTable = document.querySelector('.logframe-table');
+            if (!logframeTable) return;
+            logframeTable.addEventListener('input', function(e) {
+                if (!e.target.classList.contains('editable-cell') && !e.target.classList.contains('list-item') && !e.target.classList.contains('en-text') && !e.target.classList.contains('lao-text')) return;
+                const cell = e.target.closest('td');
+                const row = e.target.closest('tr');
+                if (row.classList.contains('sync-row')) syncRowHeights(row);
+                
+                if (cell && cell.cellIndex === 0) {
+                    const text = cell.textContent.trim();
+                    const match = text.match(/([0-9]+(?:\.[0-9]+)*)/);
+                    if (match && match[1]) {
+                        const baseNumber = match[1];
+                        if (row.dataset.prefix !== baseNumber) {
+                            const indCell = row.cells[1];
+                            if (indCell) {
+                                indCell.querySelectorAll('.ind-prefix').forEach((prefixSpan) => {
+                                    prefixSpan.innerText = baseNumber + '.' + prefixSpan.innerText.split('.')[1];
+                                });
+                            }
+                            row.dataset.prefix = baseNumber;
+                        }
+                    }
+                }
+            });
+        }
+
+        function syncPlanningFromLogframe() {
+            const tbody = document.querySelector('.planning-table tbody');
+            if (!tbody) return;
+            
+            const existingData = {};
+            tbody.querySelectorAll('tr').forEach(tr => {
+                const key = tr.dataset.key;
+                if(key) {
+                    existingData[key] = {
+                        resp: tr.querySelector('.resp-cell') ? tr.querySelector('.resp-cell').innerHTML : '',
+                        start: tr.querySelector('.start-date') ? tr.querySelector('.start-date').value : '',
+                        end: tr.querySelector('.end-date') ? tr.querySelector('.end-date').value : ''
+                    };
+                }
+            });
+
+            tbody.innerHTML = '';
+            document.querySelectorAll('.logframe-table tr').forEach(row => {
+                const cell = row.cells[0];
+                if(!cell || !cell.classList.contains('editable-cell')) return;
+                const rawText = cell.textContent.trim();
+                const visibleHtml = cell.innerHTML;
+                if(!rawText) return;
+
+                if(isGoalRow(rawText) || isPurposeRow(rawText) || isOutputRow(rawText) || isActivityRow(rawText)) {
+                    let indent = 'font-bold bg-gray-100';
+                    let isActivity = false;
+                    
+                    if(isActivityRow(rawText)) {
+                        indent = 'pl-8 text-gray-700 bg-white';
+                        isActivity = true;
+                    }
+                    
+                    const key = rawText.substring(0, 50).replace(/\s/g, '');
+                    const prev = existingData[key] || {resp: '<div class="en-text"></div><div class="lao-text"></div>', start: '', end: ''};
+                    
+                    let dateCellsHtml = '';
+                    if (isActivity) {
+                        dateCellsHtml = `
+                            <td class="px-2 py-2 border-r text-center bg-white"><input type="date" class="start-date w-full bg-transparent outline-none text-[11px] text-gray-700 cursor-pointer" value="${prev.start}"></td>
+                            <td class="px-2 py-2 border-r text-center bg-white"><input type="date" class="end-date w-full bg-transparent outline-none text-[11px] text-gray-700 cursor-pointer" value="${prev.end}"></td>
+                        `;
+                    } else {
+                        dateCellsHtml = `
+                            <td class="px-2 py-2 border-r text-center bg-gray-100"></td>
+                            <td class="px-2 py-2 border-r text-center bg-gray-100"></td>
+                        `;
+                    }
+                    
+                    const tr = document.createElement('tr');
+                    tr.dataset.key = key;
+                    tr.className = 'border-b hover:bg-gray-50';
+                    tr.innerHTML = `
+                        <td class="px-4 py-2 border-r ${indent}">${visibleHtml}</td>
+                        <td class="px-4 py-2 border-r text-center ${isActivity ? 'editable-cell resp-cell bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}">${isActivity ? prev.resp : ''}</td>
+                        ${dateCellsHtml}
+                        <td class="px-1 py-2 border-r editable-cell ${isActivity ? 'bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}"></td>
+                        <td class="px-1 py-2 border-r editable-cell ${isActivity ? 'bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}"></td>
+                        <td class="px-1 py-2 border-r editable-cell ${isActivity ? 'bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}"></td>
+                        <td class="px-1 py-2 editable-cell ${isActivity ? 'bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}"></td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        function syncBudget() {
+            const tbody = document.getElementById('budget-tbody');
+            if(!tbody) return;
+            
+            const existingBudget = {};
+            tbody.querySelectorAll('tr').forEach(tr => {
+                if(tr.dataset.key) {
+                    existingBudget[tr.dataset.key] = {
+                        unit: tr.cells[2]?.innerHTML || '',
+                        cost: tr.cells[3]?.innerText || '0',
+                        qty: tr.cells[4]?.innerText || '0'
+                    };
+                }
+            });
+
+            tbody.innerHTML = '';
+            let total = 0;
+            
+            document.querySelectorAll('.logframe-table tr').forEach(row => {
+                const cell = row.cells[0];
+                if(!cell || !cell.classList.contains('editable-cell')) return;
+                const rawText = cell.textContent.trim();
+                const visibleHtml = cell.innerHTML;
+                
+                if(isActivityRow(rawText)) {
+                    const resourceHtml = row.cells[1] ? row.cells[1].innerHTML : '';
+                    const key = rawText.substring(0, 50).replace(/\s/g, '');
+                    const prev = existingBudget[key] || {unit: '<div class="en-text">Lump sum</div><div class="lao-text">ເໝົາຈ່າຍ</div>', cost: '0', qty: '1'};
+                    
+                    const tr = document.createElement('tr');
+                    tr.dataset.key = key;
+                    tr.className = 'border-b hover:bg-gray-50';
+                    
+                    let costNum = parseFloat(prev.cost.replace(/,/g, '')) || 0;
+                    let qtyNum = parseFloat(prev.qty.replace(/,/g, '')) || 0;
+                    let rowTotal = costNum * qtyNum;
+                    total += rowTotal;
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-2 border-r text-gray-700">${visibleHtml}</td>
+                        <td class="px-4 py-2 border-r text-gray-600">${resourceHtml}</td>
+                        <td class="px-4 py-2 border-r text-right editable-cell b-unit" contenteditable="true">${prev.unit}</td>
+                        <td class="px-4 py-2 border-r text-right editable-cell b-cost" contenteditable="true" oninput="calcBudgetRow(this)">${prev.cost}</td>
+                        <td class="px-4 py-2 border-r text-right editable-cell b-qty" contenteditable="true" oninput="calcBudgetRow(this)">${prev.qty}</td>
+                        <td class="px-4 py-2 text-right text-green-700 font-medium b-total">${rowTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+            
+            const gTotal = document.getElementById('budget-grand-total');
+            if(gTotal) gTotal.innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
+        }
+
+        function calcBudgetRow(element) {
+            const tr = element.closest('tr');
+            const costStr = tr.querySelector('.b-cost').innerText.replace(/,/g, '');
+            const qtyStr = tr.querySelector('.b-qty').innerText.replace(/,/g, '');
+            const cost = parseFloat(costStr) || 0;
+            const qty = parseFloat(qtyStr) || 0;
+            const total = cost * qty;
+            tr.querySelector('.b-total').innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
+            
+            let grandTotal = 0;
+            document.querySelectorAll('#tab-budget .b-total').forEach(td => {
+                grandTotal += parseFloat(td.innerText.replace(/,/g, '')) || 0;
+            });
+            const gTotal = document.getElementById('budget-grand-total');
+            if(gTotal) gTotal.innerText = grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2});
+        }
+
+        function formatUnit(element) {
+            const tr = element.closest('tr');
+            if (!tr) return;
+            const select = tr.querySelector('.unit-type-selector');
+            if (!select) return;
+            const type = select.value;
+            let text = element.innerText.trim();
+            if (!text || text === '-') return;
+            
+            let hasNumber = text.match(/[\d\.]+/);
+            if (!hasNumber) return;
+
+            if (type === 'pct') {
+                if (!text.includes('%')) element.innerText = text + '%';
+            } else {
+                if (text.includes('%')) element.innerText = text.replace(/%/g, '');
+            }
+            
+            if(element.classList.contains('yearly-actual')) calcYearlyActuals(element);
+            else if (element.classList.contains('track-target') || element.classList.contains('track-actual')) calcProgress(element);
+        }
+
+        function changeUnitType(select) {
+            select.querySelectorAll('option').forEach(opt => opt.removeAttribute('selected'));
+            select.querySelector(`option[value="${select.value}"]`).setAttribute('selected', 'selected');
+
+            const tr = select.closest('tr');
+            tr.querySelectorAll('.format-num').forEach(td => formatUnit(td));
+            
+            const trackActual = tr.querySelector('.track-actual');
+            if(trackActual) calcProgress(trackActual);
+        }
+
+        function addTrackingYear() {
+            trackingYearCount++;
+            const theadTr = document.querySelector('.tracking-table thead tr');
+            const actualOverallTh = theadTr.querySelector('.th-actual-overall');
+            
+            const targetText = dict[currentLang]['th-target-small'];
+            const actualText = dict[currentLang]['th-actual-small'];
+            const yearId = `year-header-${trackingYearCount}`;
+            
+            const thT = document.createElement('th');
+            thT.className = 'px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center bg-blue-50 align-top';
+            thT.innerHTML = `
+                <div id="${yearId}-target" class="editable-cell mb-1 pb-1 border-b border-blue-200 text-blue-800" contenteditable="true" title="ກົດເພື່ອປ່ຽນຊື່ປີ" oninput="syncYearHeader('${yearId}', this.innerText, 'target')">Year ${trackingYearCount}</div>
+                <div class="text-[11px] uppercase tracking-wider text-blue-600" data-i18n="th-target-small">${targetText}</div>
+            `;
+            
+            const thA = document.createElement('th');
+            thA.className = 'px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center bg-green-50 align-top';
+            thA.innerHTML = `
+                <div id="${yearId}-actual" class="editable-cell mb-1 pb-1 border-b border-green-200 text-green-800" contenteditable="true" title="ກົດເພື່ອປ່ຽນຊື່ປີ" oninput="syncYearHeader('${yearId}', this.innerText, 'actual')">Year ${trackingYearCount}</div>
+                <div class="text-[11px] uppercase tracking-wider text-green-600" data-i18n="th-actual-small">${actualText}</div>
+            `;
+
+            theadTr.insertBefore(thT, actualOverallTh);
+            theadTr.insertBefore(thA, actualOverallTh);
+
+            const tbody = document.getElementById('tracking-tbody');
+            tbody.querySelectorAll('tr').forEach(tr => {
+                if (tr.cells.length === 1 && tr.cells[0].hasAttribute('colspan')) {
+                    let cs = parseInt(tr.cells[0].getAttribute('colspan'));
+                    tr.cells[0].setAttribute('colspan', cs + 2);
+                } 
+                else if (tr.classList.contains('indicator-row-track')) {
+                    const actualTd = tr.querySelector('.track-actual');
+                    
+                    const tdT = document.createElement('td');
+                    tdT.className = `px-4 py-2 border-r text-center editable-cell yearly-target bg-blue-50/30 format-num`;
+                    tdT.contentEditable = "true";
+                    tdT.onblur = function() { formatUnit(this); };
+                    
+                    const tdA = document.createElement('td');
+                    tdA.className = `px-4 py-2 border-r text-center editable-cell yearly-actual bg-green-50/30 format-num`;
+                    tdA.contentEditable = "true";
+                    tdA.oninput = function() { calcYearlyActuals(this); };
+                    tdA.onblur = function() { formatUnit(this); };
+
+                    tr.insertBefore(tdT, actualTd);
+                    tr.insertBefore(tdA, actualTd);
+                }
+            });
+        }
+
+        function syncYearHeader(yearId, text, source) {
+            if (source === 'target') {
+                const actualEl = document.getElementById(`${yearId}-actual`);
+                if (actualEl && actualEl.innerText !== text) actualEl.innerText = text;
+            } else {
+                const targetEl = document.getElementById(`${yearId}-target`);
+                if (targetEl && targetEl.innerText !== text) targetEl.innerText = text;
+            }
+        }
+
+        function calcYearlyActuals(element) {
+            const tr = element.closest('tr');
+            let sum = 0;
+            let hasValue = false;
+            
+            tr.querySelectorAll('.yearly-actual').forEach(td => {
+                let text = td.innerText.replace(/,/g, '');
+                let match = text.match(/[\d\.]+/);
+                if (match) {
+                    sum += parseFloat(match[0]);
+                    hasValue = true;
+                }
+            });
+            
+            if(hasValue) {
+                const overallActualTd = tr.querySelector('.track-actual');
+                const select = tr.querySelector('.unit-type-selector');
+                const isPercent = select && select.value === 'pct';
+                
+                overallActualTd.innerText = sum + (isPercent ? '%' : '');
+                calcProgress(overallActualTd); 
+            }
+        }
+
+        function syncTracking() {
+            const logframeTable = document.querySelector('.logframe-table');
+            const trackingTbody = document.getElementById('tracking-tbody');
+            if (!logframeTable || !trackingTbody) return;
+
+            const existingData = {};
+            trackingTbody.querySelectorAll('tr.indicator-row-track').forEach(tr => {
+                const titleKey = tr.dataset.key;
+                if (titleKey) {
+                    const yearlyData = [];
+                    const yTargets = tr.querySelectorAll('.yearly-target');
+                    const yActuals = tr.querySelectorAll('.yearly-actual');
+                    for(let i=0; i < yTargets.length; i++){
+                        yearlyData.push({
+                            target: yTargets[i].innerText.trim(),
+                            actual: yActuals[i].innerText.trim()
+                        });
+                    }
+
+                    existingData[titleKey] = {
+                        unitType: tr.querySelector('.unit-type-selector') ? tr.querySelector('.unit-type-selector').value : 'num',
+                        baseline: tr.querySelector('.track-baseline') ? tr.querySelector('.track-baseline').innerText.trim() : '',
+                        target: tr.querySelector('.track-target').innerText.trim(),
+                        actual: tr.querySelector('.track-actual').innerText.trim(),
+                        progress: tr.querySelector('.track-progress').innerText.trim(),
+                        progressClass: tr.querySelector('.track-progress').className,
+                        notes: tr.cells[tr.cells.length-1].innerHTML,
+                        yearly: yearlyData
+                    };
+                }
+            });
+
+            trackingTbody.innerHTML = '';
+            let hasData = false;
+            const colspanTotal = 7 + (trackingYearCount * 2);
+
+            logframeTable.querySelectorAll('tr').forEach(row => {
+                const cell = row.cells[0];
+                if (!cell || !cell.classList.contains('editable-cell')) return;
+                
+                const rawText = cell.textContent.trim();
+                const visibleHtml = cell.innerHTML;
+                if (!rawText) return;
+
+                let isHeader = false;
+                let indentClass = '';
+                let bgColor = '';
+
+                if (isGoalRow(rawText)) {
+                    indentClass = 'font-bold text-blue-900'; bgColor = 'bg-blue-100'; isHeader = true;
+                } else if (isOutputRow(rawText)) {
+                    indentClass = 'font-semibold pl-8 text-blue-800'; bgColor = 'bg-blue-50'; isHeader = true;
+                } else if (isPurposeRow(rawText)) {
+                    indentClass = 'font-bold pl-4'; bgColor = 'bg-gray-200'; isHeader = true;
+                }
+
+                if (isHeader) {
+                    const trHeader = document.createElement('tr');
+                    trHeader.innerHTML = `<td class="px-4 py-2 border-r ${indentClass} ${bgColor}" colspan="${colspanTotal}">${visibleHtml}</td>`;
+                    trackingTbody.appendChild(trHeader);
+
+                    const indCell = row.cells[1];
+                    if (indCell) {
+                        indCell.querySelectorAll('.list-item').forEach(item => {
+                            const rawIndText = item.textContent.trim();
+                            const visibleIndHtml = item.innerHTML;
+
+                            if (rawIndText) {
+                                const dataKey = rawText.substring(0, 50).replace(/\s/g, '') + '_' + rawIndText.substring(0, 50).replace(/\s/g, '');
+                                const prev = existingData[dataKey] || { unitType: 'num', baseline: '', target: '', actual: '', progress: '-', progressClass: 'px-4 py-2 border-r text-center font-bold text-gray-400 track-progress', notes: '<div class="en-text"></div><div class="lao-text"></div>', yearly: [] };
+
+                                let yearlyCellsHtml = '';
+                                for(let i=0; i<trackingYearCount; i++) {
+                                    const yD = prev.yearly[i] || {target: '', actual: ''};
+                                    yearlyCellsHtml += `
+                                        <td class="px-4 py-2 border-r text-center editable-cell yearly-target bg-blue-50/30 format-num" contenteditable="true" onblur="formatUnit(this)">${yD.target}</td>
+                                        <td class="px-4 py-2 border-r text-center editable-cell yearly-actual bg-green-50/30 format-num" contenteditable="true" oninput="calcYearlyActuals(this)" onblur="formatUnit(this)">${yD.actual}</td>
+                                    `;
+                                }
+
+                                const trInd = document.createElement('tr');
+                                trInd.className = 'border-b hover:bg-gray-50 transition-colors indicator-row-track';
+                                trInd.dataset.key = dataKey;
+                                
+                                trInd.innerHTML = `
+                                    <td class="px-4 py-2 border-r pl-12 text-gray-700">${visibleIndHtml}</td>
+                                    <td class="px-2 py-2 border-r text-center align-middle bg-gray-50">
+                                        <select class="unit-type-selector text-xs bg-white border border-gray-300 rounded p-1 text-gray-700 outline-none focus:border-blue-400 cursor-pointer" onchange="changeUnitType(this)">
+                                            <option value="num" ${prev.unitType === 'num' ? 'selected' : ''}>#</option>
+                                            <option value="pct" ${prev.unitType === 'pct' ? 'selected' : ''}>%</option>
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-2 border-r text-center editable-cell track-baseline format-num" contenteditable="true" onblur="formatUnit(this)">${prev.baseline}</td>
+                                    <td class="px-4 py-2 border-r text-center editable-cell track-target format-num font-bold bg-purple-50/50" contenteditable="true" oninput="calcProgress(this)" onblur="formatUnit(this)">${prev.target}</td>
+                                    ${yearlyCellsHtml}
+                                    <td class="px-4 py-2 border-r text-center editable-cell track-actual format-num font-bold bg-purple-50/50" contenteditable="true" oninput="calcProgress(this)" onblur="formatUnit(this)">${prev.actual}</td>
+                                    <td class="${prev.progressClass}">${prev.progress}</td>
+                                    <td class="px-4 py-2 editable-cell" contenteditable="true">${prev.notes}</td>
+                                `;
+                                trackingTbody.appendChild(trInd);
+                                hasData = true;
+                            }
+                        });
+                    }
+                }
+            });
+
+            if (!hasData) {
+                trackingTbody.innerHTML = `<tr><td colspan="${colspanTotal}" class="text-center py-6 text-gray-500 italic">ບໍ່ມີຂໍ້ມູນຕົວຊີ້ວັດ ກະລຸນາເພີ່ມໃນ Logframe ກ່ອນ...</td></tr>`;
+            }
+        }
+
+        function calcProgress(element) {
+            const tr = element.closest('tr');
+            let targetStr = tr.querySelector('.track-target').innerText.replace(/,/g, '');
+            let actualStr = tr.querySelector('.track-actual').innerText.replace(/,/g, '');
+            
+            let targetMatch = targetStr.match(/[\d\.]+/);
+            let actualMatch = actualStr.match(/[\d\.]+/);
+            
+            let progressCell = tr.querySelector('.track-progress');
+            
+            if (targetMatch && actualMatch) {
+                let target = parseFloat(targetMatch[0]);
+                let actual = parseFloat(actualMatch[0]);
+                
+                if (target > 0) {
+                    let percent = Math.round((actual / target) * 100);
+                    progressCell.innerText = percent + '%';
+                    
+                    if (percent >= 100) progressCell.className = 'px-4 py-2 border-r text-center font-bold text-green-600 track-progress';
+                    else if (percent >= 50) progressCell.className = 'px-4 py-2 border-r text-center font-bold text-blue-600 track-progress';
+                    else progressCell.className = 'px-4 py-2 border-r text-center font-bold text-orange-500 track-progress';
+                } else {
+                    progressCell.innerText = '0%';
+                }
+            } else {
+                progressCell.innerText = '-';
+                progressCell.className = 'px-4 py-2 border-r text-center font-bold text-gray-400 track-progress';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            switchTab('logframe');
+            setLanguage('lo');
+            setupAutoNumbering();
+            setTimeout(syncAllHeights, 100); 
+        });
+    </script>
+</body>
+</html>
