@@ -1336,8 +1336,11 @@
                         if (row.dataset.prefix !== baseNumber) {
                             const indCell = row.cells[1];
                             if (indCell) {
-                                indCell.querySelectorAll('.ind-prefix').forEach((prefixSpan) => {
-                                    prefixSpan.innerText = baseNumber + '.' + prefixSpan.innerText.split('.')[1];
+                                const listItems = indCell.querySelectorAll('.list-item');
+                                listItems.forEach((item, index) => {
+                                    item.querySelectorAll('.ind-prefix').forEach((prefixSpan) => {
+                                        prefixSpan.innerText = `${baseNumber}.${index + 1}`;
+                                    });
                                 });
                             }
                             row.dataset.prefix = baseNumber;
