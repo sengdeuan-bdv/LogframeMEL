@@ -69,6 +69,9 @@
         <div class="flex justify-between items-center mb-1 px-2">
             <div class="flex text-xs text-gray-600 gap-4">
                 <span class="cursor-pointer hover:text-blue-600 font-medium text-blue-800 border-b-2 border-blue-600 pb-1" data-i18n="menu-project">Project</span>
+                <span class="cursor-pointer hover:text-blue-600" data-i18n="menu-home">Home</span>
+                <span class="cursor-pointer hover:text-blue-600" data-i18n="menu-insert">Insert</span>
+                <span class="cursor-pointer hover:text-blue-600" data-i18n="menu-view">View</span>
             </div>
             <div class="flex bg-white rounded border border-gray-300 overflow-hidden text-xs font-bold shadow-sm">
                 <button onclick="setLanguage('en')" id="lang-en" class="px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors">EN</button>
@@ -87,6 +90,13 @@
                 </button>
                 <button onclick="saveAsJSON()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຂໍ້ມູນເປັນ JSON">
                     <i class="fas fa-file-code text-lg text-purple-600 mb-1"></i> <span data-i18n="btn-json">JSON</span>
+                </button>
+                <!-- CLOUD CACHE SAVE & RESTORE -->
+                <button onclick="saveToCache()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຊົ່ວຄາວໃນແຄສ (Cloud/Firestore)">
+                    <i class="fas fa-cloud-upload-alt text-lg text-emerald-600 mb-1"></i> <span data-i18n="btn-quick-save">Quick Save</span>
+                </button>
+                <button onclick="loadFromCache(true)" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ດຶງຂໍ້ມູນຄືນຈາກແຄສ">
+                    <i class="fas fa-cloud-download-alt text-lg text-sky-600 mb-1"></i> <span data-i18n="btn-restore-cache">Restore</span>
                 </button>
             </div>
 
@@ -353,14 +363,8 @@
                                 <div class="en-text">Legal Consultants (4 Months)</div>
                                 <div class="lao-text">ທີ່ປຶກສາກົດໝາຍ (4 ເດືອນ)</div>
                             </td>
-                            <td class="!bg-white editable-cell" contenteditable="true">
-                                <div class="en-text">10,000.00 USD</div>
-                                <div class="lao-text">10,000.00 USD</div>
-                            </td>
-                            <td class="!bg-white editable-cell" contenteditable="true">
-                                <div class="en-text">Qualified consultants are available.</div>
-                                <div class="lao-text">ມີທີ່ປຶກສາທີ່ມີຄວາມສາມາດພຽງພໍ.</div>
-                            </td>
+                            <td class="!bg-white editable-cell" contenteditable="true">10,000.00 USD</td>
+                            <td class="!bg-white editable-cell" contenteditable="true">Qualified consultants are available.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -383,7 +387,7 @@
                 <table class="min-w-full text-sm text-left planning-table">
                     <thead class="bg-blue-50 border-b">
                         <tr>
-                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/3" data-i18n="th-activities">Activity</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/3">Activity</th>
                             <th class="px-4 py-3 font-semibold text-gray-700 border-r w-32 text-center" data-i18n="th-responsible">Responsible</th>
                             <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center">Start</th>
                             <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center">End</th>
@@ -493,7 +497,12 @@
         </div>
     </div>
 
-    <script>
+    <!-- Firebase + App Script Module -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // -----------------------------------------------------------------
         // Translations (Bilingual Support)
         // -----------------------------------------------------------------
@@ -503,6 +512,7 @@
                 'tab-project': 'Project', 'tab-logframe': 'Logframe', 'tab-tracking': 'Tracking', 'tab-planning': 'Planning', 'tab-budget': 'Budget', 'tab-settings': 'Settings',
                 'btn-save-html': 'Save HTML', 'btn-json': 'JSON', 'btn-import': 'Import', 'btn-excel': 'Excel', 'btn-word': 'Word',
                 'btn-add': 'Add', 'btn-sync': 'Sync from Logframe', 'btn-add-year': 'Add Year',
+                'btn-quick-save': 'Quick Save', 'btn-restore-cache': 'Restore',
                 'lbl-proj-info': 'Project Information', 'lbl-proj-title': 'Project Title', 'lbl-proj-code': 'Project Code', 'lbl-proj-desc': 'Description',
                 'lbl-custom-headers': 'Customize Logframe Headers', 'desc-custom-headers': 'Change the default terms for the logical framework levels to match your project\'s specific terminology.',
                 'lbl-level': 'Level', 'lbl-en': 'English (EN)', 'lbl-lo': 'Lao (LA)',
@@ -553,11 +563,180 @@
         let currentLang = 'lo';
         let trackingYearCount = 0;
 
+        // -----------------------------------------------------------------
+        // Firebase Cloud Cache Setup
+        // -----------------------------------------------------------------
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'logframe-app-id';
+
+        async function initFirebase() {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                try {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    // Auth logic (RULE 3)
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (user) => {
+                        currentUser = user;
+                        if (user) {
+                            console.log("Firebase Auth Success:", user.uid);
+                            // Automatically load state from cloud cache (Rule 3 Guarded inside)
+                            loadFromCache(false);
+                        }
+                    });
+                } catch (e) {
+                    console.error("Firebase connection failed:", e);
+                }
+            }
+        }
+
+        // Exponential backoff helper
+        async function withRetry(fn) {
+            let delay = 1000;
+            for (let i = 0; i < 5; i++) {
+                try {
+                    return await fn();
+                } catch (err) {
+                    if (i === 4) throw err;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        function showToast(message, type = "success") {
+            const toast = document.createElement("div");
+            toast.className = `fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white font-medium flex items-center gap-2 transition-all transform translate-y-10 opacity-0 duration-300 ${
+                type === "success" ? "bg-green-600" : type === "error" ? "bg-red-600" : "bg-blue-600"
+            }`;
+            toast.innerHTML = `
+                <i class="fas ${type === "success" ? "fa-check-circle" : type === "error" ? "fa-exclamation-circle" : "fa-info-circle"}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.remove("translate-y-10", "opacity-0"), 10);
+            setTimeout(() => {
+                toast.classList.add("translate-y-10", "opacity-0");
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        async function saveToCache() {
+            if (!db || !currentUser) {
+                showToast("ລະບົບ Cloud ຍັງບໍ່ພ້ອມໃຊ້ງານ (ກຳລັງເຊື່ອມຕໍ່...)", "error");
+                return;
+            }
+            try {
+                // Rule 1 Compliant Path
+                const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'cache', 'latest');
+                
+                const customHeaders = {
+                    en: {
+                        'th-goals': document.getElementById('set-goal-en')?.value || dict['en']['th-goals'],
+                        'th-purposes': document.getElementById('set-purp-en')?.value || dict['en']['th-purposes'],
+                        'th-outputs': document.getElementById('set-out-en')?.value || dict['en']['th-outputs'],
+                        'th-activities': document.getElementById('set-act-en')?.value || dict['en']['th-activities']
+                    },
+                    lo: {
+                        'th-goals': document.getElementById('set-goal-lo')?.value || dict['lo']['th-goals'],
+                        'th-purposes': document.getElementById('set-purp-lo')?.value || dict['lo']['th-purposes'],
+                        'th-outputs': document.getElementById('set-out-lo')?.value || dict['lo']['th-outputs'],
+                        'th-activities': document.getElementById('set-act-lo')?.value || dict['lo']['th-activities']
+                    }
+                };
+
+                await withRetry(() => setDoc(docRef, {
+                    projectTitleEn: document.getElementById('proj-title-en')?.value || '',
+                    projectTitleLo: document.getElementById('proj-title-lo')?.value || '',
+                    projectCode: document.getElementById('proj-code')?.value || '', 
+                    projectDescEn: document.getElementById('proj-desc-en')?.value || '',
+                    projectDescLo: document.getElementById('proj-desc-lo')?.value || '',
+                    logframeHTML: document.querySelector('.logframe-table').innerHTML,
+                    trackingHTML: document.querySelector('.tracking-table') ? document.querySelector('.tracking-table').innerHTML : '',
+                    trackingYearCount: trackingYearCount,
+                    customHeaders: customHeaders,
+                    updatedAt: new Date().toISOString()
+                }));
+
+                showToast("ບັນທຶກດ່ວນລົງແຄສ Cloud ສຳເລັດແລ້ວ!", "success");
+            } catch (err) {
+                console.error(err);
+                showToast("ການບັນທຶກຜິດພາດ ກະລຸນາລອງໃໝ່", "error");
+            }
+        }
+
+        async function loadFromCache(manualTrigger = false) {
+            if (!db || !currentUser) {
+                if (manualTrigger) showToast("ກຳລັງເຊື່ອມຕໍ່ກັບເຊີເວີ Cloud...", "error");
+                return;
+            }
+            try {
+                // Rule 1 Compliant Path
+                const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'cache', 'latest');
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.projectTitleEn !== undefined) document.getElementById('proj-title-en').value = data.projectTitleEn;
+                    if (data.projectTitleLo !== undefined) document.getElementById('proj-title-lo').value = data.projectTitleLo;
+                    if (data.projectDescEn !== undefined) document.getElementById('proj-desc-en').value = data.projectDescEn;
+                    if (data.projectDescLo !== undefined) document.getElementById('proj-desc-lo').value = data.projectDescLo;
+                    if (data.projectCode !== undefined) document.getElementById('proj-code').value = data.projectCode;
+
+                    if (data.logframeHTML) {
+                        document.querySelector('.logframe-table').innerHTML = data.logframeHTML;
+                        setTimeout(syncAllHeights, 100);
+                    }
+                    if (data.trackingHTML && document.querySelector('.tracking-table')) {
+                        document.querySelector('.tracking-table').innerHTML = data.trackingHTML;
+                    }
+                    if (data.trackingYearCount !== undefined) trackingYearCount = data.trackingYearCount;
+                    
+                    if (data.customHeaders) {
+                        document.getElementById('set-goal-en').value = data.customHeaders.en['th-goals'];
+                        document.getElementById('set-purp-en').value = data.customHeaders.en['th-purposes'];
+                        document.getElementById('set-out-en').value = data.customHeaders.en['th-outputs'];
+                        document.getElementById('set-act-en').value = data.customHeaders.en['th-activities'];
+                        
+                        document.getElementById('set-goal-lo').value = data.customHeaders.lo['th-goals'];
+                        document.getElementById('set-purp-lo').value = data.customHeaders.lo['th-purposes'];
+                        document.getElementById('set-out-lo').value = data.customHeaders.lo['th-outputs'];
+                        document.getElementById('set-act-lo').value = data.customHeaders.lo['th-activities'];
+                        
+                        Object.keys(data.customHeaders.en).forEach(k => dict['en'][k] = data.customHeaders.en[k]);
+                        Object.keys(data.customHeaders.lo).forEach(k => dict['lo'][k] = data.customHeaders.lo[k]);
+                    }
+
+                    setLanguage(currentLang);
+                    showToast("ດຶງຂໍ້ມູນຫຼ້າສຸດຈາກແຄສ Cloud ສຳເລັດ!", "success");
+                } else {
+                    if (manualTrigger) {
+                        showToast("ບໍ່ພົບຂໍ້ມູນບັນທຶກໃນແຄສ", "error");
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                if (manualTrigger) showToast("ດຶງຂໍ້ມູນຜິດພາດ ກະລຸນາລອງໃໝ່", "error");
+            }
+        }
+
+        // -----------------------------------------------------------------
+        // Core Logic
+        // -----------------------------------------------------------------
         function setLanguage(lang) {
             currentLang = lang;
             document.body.className = `h-screen flex flex-col overflow-hidden lang-${lang}`;
             
-            // Update button styles
             document.getElementById('lang-en').className = lang === 'en' ? 'px-3 py-1 bg-blue-100 text-blue-800 transition-colors' : 'px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors';
             document.getElementById('lang-lo').className = lang === 'lo' ? 'px-3 py-1 bg-blue-100 text-blue-800 transition-colors' : 'px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors';
             document.getElementById('lang-bi').className = lang === 'bi' ? 'px-3 py-1 bg-blue-100 text-blue-800 transition-colors' : 'px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors';
@@ -603,7 +782,6 @@
             if (currentLang === lang || currentLang === 'bi') setLanguage(currentLang);
         }
 
-        // Helper functions for dynamic header parsing (ignoring display:none via textContent)
         function isGoalRow(text) {
             const t = text.toLowerCase();
             const en = document.getElementById('set-goal-en').value.toLowerCase().split(/[ \(\)]/)[0];
@@ -627,7 +805,7 @@
         }
 
         // -----------------------------------------------------------------
-        // Export Functions & Modal
+        // Export Functions
         // -----------------------------------------------------------------
         let pendingExportType = '';
 
@@ -709,16 +887,6 @@
                     if (data.projectDescEn !== undefined) document.getElementById('proj-desc-en').value = data.projectDescEn;
                     if (data.projectDescLo !== undefined) document.getElementById('proj-desc-lo').value = data.projectDescLo;
                     if (data.projectCode !== undefined) document.getElementById('proj-code').value = data.projectCode;
-                    
-                    // Fallback for older JSON versions
-                    if (data.projectTitle !== undefined) {
-                         document.getElementById('proj-title-en').value = data.projectTitle;
-                         document.getElementById('proj-title-lo').value = data.projectTitle;
-                    }
-                    if (data.projectDesc !== undefined) {
-                         document.getElementById('proj-desc-en').value = data.projectDesc;
-                         document.getElementById('proj-desc-lo').value = data.projectDesc;
-                    }
 
                     if (data.logframeHTML) {
                         document.querySelector('.logframe-table').innerHTML = data.logframeHTML;
@@ -745,9 +913,9 @@
                     }
 
                     setLanguage(currentLang);
-                    alert(currentLang === 'lo' ? 'ນຳເຂົ້າຂໍ້ມູນ JSON ສຳເລັດແລ້ວ!' : 'JSON imported successfully!');
+                    showToast("ນຳເຂົ້າຂໍ້ມູນ JSON ສຳເລັດແລ້ວ!", "success");
                 } catch (err) {
-                    alert(currentLang === 'lo' ? 'ເກີດຂໍ້ຜິດພາດໃນການອ່ານໄຟລ໌ JSON' : 'Error reading JSON file');
+                    showToast("ເກີດຂໍ້ຜິດພາດໃນການອ່ານໄຟລ໌ JSON", "error");
                 }
                 event.target.value = '';
             };
@@ -760,11 +928,8 @@
             if (!tableSource) return "<table><tr><td>No data</td></tr></table>";
             
             const tableClone = tableSource.cloneNode(true);
-            
-            // Clean up UI buttons and empty rows
             tableClone.querySelectorAll('.add-btn').forEach(btn => btn.remove());
             
-            // Remove languages not currently selected to make export match screen exactly
             if (currentLang === 'en') {
                 tableClone.querySelectorAll('.lao-text').forEach(el => el.remove());
             } else if (currentLang === 'lo') {
@@ -841,7 +1006,6 @@
             });
             const sourceHTML = header + tableToExport.outerHTML + "</body></html>";
             
-            // For MS Word doc, we use a Blob with the correct mime type
             const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
             const url = URL.createObjectURL(blob);
             const fileDownload = document.createElement("a");
@@ -851,7 +1015,9 @@
             URL.revokeObjectURL(url);
         }
 
+        // -----------------------------------------------------------------
         // Formatting & Tab Navigation
+        // -----------------------------------------------------------------
         function execCmd(command, value = null) {
             document.execCommand(command, false, value);
             setTimeout(() => {
@@ -1376,11 +1542,40 @@
             }
         }
 
+        // Global Bindings for HTML onclick listeners
+        window.setLanguage = setLanguage;
+        window.saveAsHTML = saveAsHTML;
+        window.saveAsJSON = saveAsJSON;
+        window.importJSON = importJSON;
+        window.execCmd = execCmd;
+        window.switchTab = switchTab;
+        window.addItem = addItem;
+        window.calcBudgetRow = calcBudgetRow;
+        window.formatUnit = formatUnit;
+        window.changeUnitType = changeUnitType;
+        window.addTrackingYear = addTrackingYear;
+        window.syncYearHeader = syncYearHeader;
+        window.calcYearlyActuals = calcYearlyActuals;
+        window.syncPlanningFromLogframe = syncPlanningFromLogframe;
+        window.syncBudget = syncBudget;
+        window.syncTracking = syncTracking;
+        window.calcProgress = calcProgress;
+        window.updateCustomHeader = updateCustomHeader;
+        window.openExportModal = openExportModal;
+        window.closeExportModal = closeExportModal;
+        window.confirmExport = confirmExport;
+        window.saveToCache = saveToCache;
+        window.loadFromCache = loadFromCache;
+
+        // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
             switchTab('logframe');
             setLanguage('lo');
             setupAutoNumbering();
-            setTimeout(syncAllHeights, 100); 
+            setTimeout(syncAllHeights, 100);
+            
+            // Start Firebase setup (Rule 3)
+            initFirebase();
         });
     </script>
 </body>
