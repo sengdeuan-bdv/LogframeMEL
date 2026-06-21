@@ -92,7 +92,7 @@
                     <i class="fas fa-file-code text-lg text-purple-600 mb-1"></i> <span data-i18n="btn-json">JSON</span>
                 </button>
                 <!-- CLOUD CACHE SAVE & RESTORE -->
-                <button onclick="saveToCache()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຊົ່ວຄາວໃນແຄສ (Cloud/Firestore)">
+                <button onclick="saveToCache()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຊົ່ວຄາວໃນແຄສ (Cloud/Firestore) [Ctrl+Shift+V ຫຼື Ctrl+S]">
                     <i class="fas fa-cloud-upload-alt text-lg text-emerald-600 mb-1"></i> <span data-i18n="btn-quick-save">Quick Save</span>
                 </button>
                 <button onclick="loadFromCache(true)" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ດຶງຂໍ້ມູນຄືນຈາກແຄສ">
@@ -118,7 +118,11 @@
                 </button>
             </div>
 
+            <!-- FORMATTING ACTIONS -->
             <div class="flex items-center gap-2 border-r pr-3">
+                <button onclick="pasteValue()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ວາງສະເພາະຂໍ້ຄວາມ (Paste Plain Text) ຫຼື ກົດ Ctrl+Shift+V">
+                    <i class="fas fa-clipboard text-lg text-gray-600 mb-1"></i> <span data-i18n="btn-paste">Paste Value</span>
+                </button>
                 <select id="fontFamily" onchange="execCmd('fontName', this.value)" class="text-sm border border-gray-300 rounded p-1 text-gray-700 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
                     <option value="'Noto Sans Lao', sans-serif">Noto Sans Lao</option>
                     <option value="Arial, sans-serif">Arial</option>
@@ -222,6 +226,20 @@
 
         <!-- LOGFRAME TAB -->
         <div id="tab-logframe" class="tab-content w-full h-full overflow-hidden flex flex-col">
+            <div class="bg-gray-50 border-b p-2 flex gap-2 shrink-0 justify-center shadow-sm">
+                <button onclick="addLogframeRow('goal')" class="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors shadow-sm text-xs font-medium flex items-center gap-1">
+                    <i class="fas fa-bullseye"></i> <span data-i18n="btn-add-goal">Add Goal</span>
+                </button>
+                <button onclick="addLogframeRow('purpose')" class="bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 transition-colors shadow-sm text-xs font-medium flex items-center gap-1">
+                    <i class="fas fa-flag"></i> <span data-i18n="btn-add-purpose">Add Purpose</span>
+                </button>
+                <button onclick="addLogframeRow('output')" class="bg-teal-600 text-white px-3 py-1.5 rounded hover:bg-teal-700 transition-colors shadow-sm text-xs font-medium flex items-center gap-1">
+                    <i class="fas fa-box-open"></i> <span data-i18n="btn-add-output">Add Output</span>
+                </button>
+                <button onclick="addLogframeRow('activity')" class="bg-orange-600 text-white px-3 py-1.5 rounded hover:bg-orange-700 transition-colors shadow-sm text-xs font-medium flex items-center gap-1">
+                    <i class="fas fa-tasks"></i> <span data-i18n="btn-add-activity">Add Activity</span>
+                </button>
+            </div>
             <div class="table-container flex-1 overflow-auto bg-gray-200 p-2">
                 <table class="logframe-table w-full border-collapse min-w-[1000px] text-sm">
                     <colgroup>
@@ -497,6 +515,19 @@
         </div>
     </div>
 
+    <!-- Paste Modal -->
+    <div id="paste-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-[400px]">
+            <h3 class="text-lg font-bold mb-2 text-gray-800" data-i18n="lbl-paste-modal">Paste Text</h3>
+            <p class="text-sm text-gray-600 mb-4" data-i18n="desc-paste-modal">Please paste your text below (Ctrl+V) and click Insert.</p>
+            <textarea id="paste-textarea" class="w-full border border-gray-300 rounded-md p-2 h-32 focus:ring-blue-500 outline-none text-sm" placeholder="..."></textarea>
+            <div class="mt-4 flex justify-end gap-2">
+                <button onclick="closePasteModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-medium transition-colors" data-i18n="btn-cancel">Cancel</button>
+                <button onclick="confirmPaste()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-medium transition-colors" data-i18n="btn-insert">Insert</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase + App Script Module -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -512,7 +543,8 @@
                 'tab-project': 'Project', 'tab-logframe': 'Logframe', 'tab-tracking': 'Tracking', 'tab-planning': 'Planning', 'tab-budget': 'Budget', 'tab-settings': 'Settings',
                 'btn-save-html': 'Save HTML', 'btn-json': 'JSON', 'btn-import': 'Import', 'btn-excel': 'Excel', 'btn-word': 'Word',
                 'btn-add': 'Add', 'btn-sync': 'Sync from Logframe', 'btn-add-year': 'Add Year',
-                'btn-quick-save': 'Quick Save', 'btn-restore-cache': 'Restore',
+                'btn-add-goal': 'Add Goal', 'btn-add-purpose': 'Add Purpose', 'btn-add-output': 'Add Output', 'btn-add-activity': 'Add Activity',
+                'btn-quick-save': 'Quick Save', 'btn-restore-cache': 'Restore', 'btn-paste': 'Paste Value',
                 'lbl-proj-info': 'Project Information', 'lbl-proj-title': 'Project Title', 'lbl-proj-code': 'Project Code', 'lbl-proj-desc': 'Description',
                 'lbl-custom-headers': 'Customize Logframe Headers', 'desc-custom-headers': 'Change the default terms for the logical framework levels to match your project\'s specific terminology.',
                 'lbl-level': 'Level', 'lbl-en': 'English (EN)', 'lbl-lo': 'Lao (LA)',
@@ -531,13 +563,18 @@
                 'btn-export-raw': 'Raw Data Only',
                 'desc-export-raw': 'Plain text without colors (.xlsx / .doc)',
                 'btn-cancel': 'Cancel',
-                'lbl-ready': 'Ready'
+                'lbl-ready': 'Ready',
+                'lbl-paste-modal': 'Paste Text',
+                'desc-paste-modal': 'Please paste your text below (Ctrl+V) and click Insert.',
+                'btn-insert': 'Insert'
             },
             'lo': {
                 'menu-project': 'ໂຄງການ',
                 'tab-project': 'ໂຄງການ', 'tab-logframe': 'Logframe', 'tab-tracking': 'ຕິດຕາມຕົວຊີ້ວັດ', 'tab-planning': 'ແຜນວຽກ', 'tab-budget': 'ງົບປະມານ', 'tab-settings': 'ຕັ້ງຄ່າ',
                 'btn-save-html': 'ບັນທຶກ HTML', 'btn-json': 'JSON', 'btn-import': 'ນຳເຂົ້າ', 'btn-excel': 'Excel', 'btn-word': 'Word',
                 'btn-add': 'ເພີ່ມ', 'btn-sync': 'ດຶງຂໍ້ມູນຈາກ Logframe', 'btn-add-year': 'ເພີ່ມປີ',
+                'btn-add-goal': 'ເພີ່ມເປົ້າໝາຍ', 'btn-add-purpose': 'ເພີ່ມຈຸດປະສົງ', 'btn-add-output': 'ເພີ່ມຜົນໄດ້ຮັບ', 'btn-add-activity': 'ເພີ່ມກິດຈະກຳ',
+                'btn-quick-save': 'ບັນທຶກດ່ວນ', 'btn-restore-cache': 'ດຶງຂໍ້ມູນຄືນ', 'btn-paste': 'ວາງຂໍ້ຄວາມ',
                 'lbl-proj-info': 'ຂໍ້ມູນໂຄງການ', 'lbl-proj-title': 'ຊື່ໂຄງການ', 'lbl-proj-code': 'ລະຫັດໂຄງການ', 'lbl-proj-desc': 'ລາຍລະອຽດ',
                 'lbl-custom-headers': 'ຕັ້ງຄ່າຊື່ຫົວຂໍ້ຫຼັກ', 'desc-custom-headers': 'ປັບປ່ຽນຄຳສັບມາດຕະຖານຂອງໂຄງສ້າງ Logframe ໃຫ້ກົງກັບໂຄງການຂອງທ່ານ (ຕົວຢ່າງ: ປ່ຽນ ຈຸດປະສົງ ເປັນ ຜົນໄດ້ຮັບຫຼັກ).',
                 'lbl-level': 'ລະດັບຊັ້ນ', 'lbl-en': 'ພາສາອັງກິດ (EN)', 'lbl-lo': 'ພາສາລາວ (LA)',
@@ -556,7 +593,10 @@
                 'btn-export-raw': 'ສົ່ງອອກສະເພາະຂໍ້ມູນ (Raw)',
                 'desc-export-raw': 'ຕາຕະລາງທຳມະດາ ບໍ່ມີສີສັນ (.xlsx / .doc)',
                 'btn-cancel': 'ຍົກເລີກ',
-                'lbl-ready': 'ພ້ອມໃຊ້ງານ'
+                'lbl-ready': 'ພ້ອມໃຊ້ງານ',
+                'lbl-paste-modal': 'ວາງຂໍ້ຄວາມ',
+                'desc-paste-modal': 'ກະລຸນາວາງຂໍ້ຄວາມຂອງທ່ານລົງໃນຫ້ອງລຸ່ມນີ້ (Ctrl+V) ແລ້ວກົດປຸ່ມເພີ່ມລົງໄປ.',
+                'btn-insert': 'ເພີ່ມລົງໄປ'
             }
         };
 
@@ -1018,6 +1058,45 @@
         // -----------------------------------------------------------------
         // Formatting & Tab Navigation
         // -----------------------------------------------------------------
+        let savedSelectionRange = null;
+
+        function pasteValue() {
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                savedSelectionRange = sel.getRangeAt(0);
+            }
+            
+            const modal = document.getElementById('paste-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('paste-textarea').focus(), 100);
+        }
+
+        function closePasteModal() {
+            const modal = document.getElementById('paste-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('paste-textarea').value = '';
+            
+            if (savedSelectionRange) {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedSelectionRange);
+            }
+        }
+
+        function confirmPaste() {
+            const text = document.getElementById('paste-textarea').value;
+            closePasteModal();
+            
+            if (text && savedSelectionRange) {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedSelectionRange);
+                document.execCommand('insertText', false, text);
+            }
+        }
+
         function execCmd(command, value = null) {
             document.execCommand(command, false, value);
             setTimeout(() => {
@@ -1113,6 +1192,130 @@
                 range.selectNodeContents(focusItem.lastChild);
                 sel.removeAllRanges();
                 sel.addRange(range);
+            }
+        }
+
+        function addLogframeRow(type) {
+            const tbodies = document.querySelectorAll('.logframe-table tbody');
+            let targetTbody = null;
+            let trHTML = '';
+            const addBtnHtml = `<button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>`;
+            const addBtnHtmlTrue = `<button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>`;
+
+            if (type === 'goal') {
+                targetTbody = tbodies[0];
+                trHTML = `
+                    <tr class="sync-row">
+                        <td class="editable-cell" contenteditable="true">
+                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal:</span> New Goal</div>
+                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ:</span> ເປົ້າໝາຍໃໝ່</div>
+                        </td>
+                        <td class="bg-gray-100 relative group align-top has-list p-0">
+                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            ${addBtnHtmlTrue}
+                        </td>
+                        <td class="bg-gray-100 relative group align-top has-list p-0">
+                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            ${addBtnHtml}
+                        </td>
+                        <td class="bg-gray-100 relative group align-top has-list p-0">
+                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            ${addBtnHtml}
+                        </td>
+                    </tr>
+                `;
+            } else if (type === 'purpose') {
+                targetTbody = tbodies[1];
+                const count = targetTbody.querySelectorAll('.purpose-row').length + 1;
+                trHTML = `
+                    <tr class="purpose-row sync-row" data-prefix="${count}">
+                        <td class="editable-cell" contenteditable="true">
+                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">${count}.</span> New Purpose</div>
+                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">${count}.</span> ຈຸດປະສົງໃໝ່</div>
+                        </td>
+                        <td class="bg-white relative group align-top has-list p-0">
+                            <div class="list-container">
+                                <div class="list-item" contenteditable="true">
+                                    <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${count}.1</span> New Indicator</div>
+                                    <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${count}.1</span> ຕົວຊີ້ວັດໃໝ່</div>
+                                </div>
+                            </div>
+                            ${addBtnHtmlTrue}
+                        </td>
+                        <td class="bg-white relative group align-top has-list p-0">
+                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            ${addBtnHtml}
+                        </td>
+                        <td class="bg-white relative group align-top has-list p-0">
+                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            ${addBtnHtml}
+                        </td>
+                    </tr>
+                `;
+            } else if (type === 'output') {
+                targetTbody = tbodies[2];
+                trHTML = `
+                    <tr class="output-row sync-row" data-prefix="X.X">
+                        <td class="!bg-white editable-cell" contenteditable="true">
+                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output X.X:</span> New Output</div>
+                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ X.X:</span> ຜົນໄດ້ຮັບໃໝ່</div>
+                        </td>
+                        <td class="!bg-white relative group align-top has-list p-0">
+                            <div class="list-container">
+                                <div class="list-item" contenteditable="true">
+                                    <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">X.X.1</span> New Indicator</div>
+                                    <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">X.X.1</span> ຕົວຊີ້ວັດໃໝ່</div>
+                                </div>
+                            </div>
+                            ${addBtnHtmlTrue}
+                        </td>
+                        <td class="!bg-white relative group align-top has-list p-0">
+                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            ${addBtnHtml}
+                        </td>
+                        <td class="!bg-white relative group align-top has-list p-0">
+                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            ${addBtnHtml}
+                        </td>
+                    </tr>
+                `;
+            } else if (type === 'activity') {
+                targetTbody = tbodies[3];
+                trHTML = `
+                    <tr>
+                        <td class="!bg-white editable-cell" contenteditable="true">
+                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act X.X.X:</span> New Activity</div>
+                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ X.X.X:</span> ກິດຈະກຳໃໝ່</div>
+                        </td>
+                        <td class="!bg-white editable-cell" contenteditable="true">
+                            <div class="en-text">Resources</div>
+                            <div class="lao-text">ຊັບພະຍາກອນ</div>
+                        </td>
+                        <td class="!bg-white editable-cell" contenteditable="true">0.00 USD</td>
+                        <td class="!bg-white editable-cell" contenteditable="true"></td>
+                    </tr>
+                `;
+            }
+
+            if (targetTbody && trHTML) {
+                const rows = targetTbody.querySelectorAll('tr');
+                let spacer = null;
+                if(rows.length > 0 && rows[rows.length-1].querySelector('td[colspan="4"]')?.classList.contains('h-4')) {
+                    spacer = rows[rows.length-1];
+                }
+
+                const tempDiv = document.createElement('table');
+                tempDiv.innerHTML = `<tbody>${trHTML}</tbody>`;
+                const newRow = tempDiv.querySelector('tr');
+
+                if (spacer) {
+                    targetTbody.insertBefore(newRow, spacer);
+                } else {
+                    targetTbody.appendChild(newRow);
+                }
+                
+                setLanguage(currentLang);
+                if (newRow.classList.contains('sync-row')) syncRowHeights(newRow);
             }
         }
 
@@ -1547,9 +1750,11 @@
         window.saveAsHTML = saveAsHTML;
         window.saveAsJSON = saveAsJSON;
         window.importJSON = importJSON;
+        window.pasteValue = pasteValue;
         window.execCmd = execCmd;
         window.switchTab = switchTab;
         window.addItem = addItem;
+        window.addLogframeRow = addLogframeRow;
         window.calcBudgetRow = calcBudgetRow;
         window.formatUnit = formatUnit;
         window.changeUnitType = changeUnitType;
@@ -1566,6 +1771,8 @@
         window.confirmExport = confirmExport;
         window.saveToCache = saveToCache;
         window.loadFromCache = loadFromCache;
+        window.closePasteModal = closePasteModal;
+        window.confirmPaste = confirmPaste;
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
@@ -1576,6 +1783,15 @@
             
             // Start Firebase setup (Rule 3)
             initFirebase();
+
+            // Setup Keyboard Shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Shortcut: Ctrl + S (Standard Save)
+                if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    saveToCache();
+                }
+            });
         });
     </script>
 </body>
