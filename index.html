@@ -223,20 +223,6 @@
 
         <!-- LOGFRAME TAB -->
         <div id="tab-logframe" class="tab-content w-full h-full overflow-hidden flex flex-col">
-            <div class="bg-gray-50 border-b p-2 flex gap-2 shrink-0 justify-center shadow-sm">
-                <button onclick="addLogframeRow('goal')" class="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors shadow-sm text-xs font-medium flex items-center gap-1">
-                    <i class="fas fa-bullseye"></i> <span data-i18n="btn-add-goal">Add Goal</span>
-                </button>
-                <button onclick="addLogframeRow('purpose')" class="bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 transition-colors shadow-sm text-xs font-medium flex items-center gap-1">
-                    <i class="fas fa-flag"></i> <span data-i18n="btn-add-purpose">Add Purpose</span>
-                </button>
-                <button onclick="addLogframeRow('output')" class="bg-teal-600 text-white px-3 py-1.5 rounded hover:bg-teal-700 transition-colors shadow-sm text-xs font-medium flex items-center gap-1">
-                    <i class="fas fa-box-open"></i> <span data-i18n="btn-add-output">Add Output</span>
-                </button>
-                <button onclick="addLogframeRow('activity')" class="bg-orange-600 text-white px-3 py-1.5 rounded hover:bg-orange-700 transition-colors shadow-sm text-xs font-medium flex items-center gap-1">
-                    <i class="fas fa-tasks"></i> <span data-i18n="btn-add-activity">Add Activity</span>
-                </button>
-            </div>
             <div class="table-container flex-1 overflow-auto bg-gray-200 p-2">
                 <table class="logframe-table w-full border-collapse min-w-[1000px] text-sm">
                     <colgroup>
@@ -248,27 +234,33 @@
                     
                     <tbody>
                         <tr>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-goals">Goals</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span data-i18n="th-goals">Goals</span>
+                                    <button onclick="addLogframeRow('goal')" class="bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow-sm flex items-center justify-center transition-colors" title="Add Goal"><i class="fas fa-plus text-xs"></i></button>
+                                </div>
+                            </th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
                         </tr>
                         <tr class="sync-row">
-                            <td class="editable-cell" contenteditable="true">
+                            <td class="editable-cell relative group" contenteditable="true">
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal:</span> Achieve gender equality and empower all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
                             <td class="bg-gray-100 relative group align-top has-list p-0">
                                 <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="bg-gray-100 relative group align-top has-list p-0">
                                 <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="bg-gray-100 relative group align-top has-list p-0">
                                 <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                         </tr>
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
@@ -276,13 +268,19 @@
 
                     <tbody>
                         <tr>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-purposes">Purposes</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span data-i18n="th-purposes">Purposes</span>
+                                    <button onclick="addLogframeRow('purpose')" class="bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow-sm flex items-center justify-center transition-colors" title="Add Purpose"><i class="fas fa-plus text-xs"></i></button>
+                                </div>
+                            </th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
                         </tr>
                         <tr class="purpose-row sync-row" data-prefix="1">
-                            <td class="editable-cell" contenteditable="true">
+                            <td class="editable-cell relative group" contenteditable="true">
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.</span> End all forms of discrimination against all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
@@ -293,15 +291,15 @@
                                         <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1</span> ມີກອບກົດໝາຍເພື່ອສົ່ງເສີມຄວາມສະເໝີພາບ</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="bg-white relative group align-top has-list p-0">
                                 <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="bg-white relative group align-top has-list p-0">
                                 <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                         </tr>
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
@@ -309,19 +307,26 @@
 
                     <tbody>
                         <tr>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-outputs">Outputs</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span data-i18n="th-outputs">Outputs</span>
+                                    <button onclick="addLogframeRow('output')" class="bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow-sm flex items-center justify-center transition-colors" title="Add Output"><i class="fas fa-plus text-xs"></i></button>
+                                </div>
+                            </th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
                         </tr>
                         <tr class="blue-ribbon">
-                            <td colspan="4" class="!text-left editable-cell" contenteditable="true">
+                            <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
                                 <div class="en-text">End all forms of discrimination against all women and girls everywhere</div>
                                 <div class="lao-text">ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງໃນທຸກຫົນທຸກແຫ່ງ</div>
                             </td>
                         </tr>
                         <tr class="output-row sync-row" data-prefix="1.1">
-                            <td class="!bg-white editable-cell" contenteditable="true">
+                            <td class="!bg-white editable-cell relative group" contenteditable="true">
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1:</span> Legal reviews conducted.</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
                             </td>
@@ -332,7 +337,7 @@
                                         <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1</span> ຈຳນວນການທົບທວນທີ່ສຳເລັດ.</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="!bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
@@ -341,7 +346,7 @@
                                         <div class="lao-text">ບົດລາຍງານໂຄງການ</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="!bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
@@ -350,7 +355,7 @@
                                         <div class="lao-text">ຄວາມເຕັມໃຈຂອງລັດຖະບານ</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                         </tr>
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
@@ -358,19 +363,26 @@
 
                     <tbody>
                         <tr>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-activities">Activities</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span data-i18n="th-activities">Activities</span>
+                                    <button onclick="addLogframeRow('activity')" class="bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow-sm flex items-center justify-center transition-colors" title="Add Activity"><i class="fas fa-plus text-xs"></i></button>
+                                </div>
+                            </th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-resources">Resources</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-budget">Budget</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
                         </tr>
                         <tr class="blue-ribbon">
-                            <td colspan="4" class="!text-left editable-cell" contenteditable="true">
+                            <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
                                 <div class="en-text">Output 1.1: Legal reviews conducted.</div>
                                 <div class="lao-text">ຜົນໄດ້ຮັບ 1.1: ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
                             </td>
                         </tr>
                         <tr>
-                            <td class="!bg-white editable-cell" contenteditable="true">
+                            <td class="!bg-white editable-cell relative group" contenteditable="true">
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act 1.1.1:</span> Hire legal consultants</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ 1.1.1:</span> ຈ້າງທີ່ປຶກສາດ້ານກົດໝາຍ</div>
                             </td>
@@ -1135,7 +1147,7 @@
                 const diff = maxItems - items.length;
                 for (let i = 0; i < diff; i++) {
                     const newItem = document.createElement('div');
-                    newItem.className = 'list-item';
+                    newItem.className = 'list-item relative group/item';
                     newItem.contentEditable = "true";
                     
                     let prefixHtml = '';
@@ -1143,7 +1155,8 @@
                         const count = list.querySelectorAll('.list-item').length;
                         prefixHtml = `<span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${tr.dataset.prefix}.${count + 1}</span> `;
                     }
-                    newItem.innerHTML = `<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
+                    const delBtnHtml = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
+                    newItem.innerHTML = `${delBtnHtml}<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
                     list.appendChild(newItem);
                 }
             });
@@ -1160,6 +1173,47 @@
             document.querySelectorAll('.logframe-table tr.sync-row').forEach(tr => syncRowHeights(tr));
         }
 
+        function deleteLogframeRow(btn) {
+            const tr = btn.closest('tr');
+            if (tr) {
+                tr.remove();
+                syncAllHeights();
+            }
+        }
+
+        function deleteListItem(btn) {
+            const listItem = btn.closest('.list-item');
+            const container = listItem.closest('.list-container');
+            const tr = container.closest('tr');
+            
+            const items = Array.from(container.children);
+            const index = items.indexOf(listItem);
+            
+            if (index > -1) {
+                const allContainers = tr.querySelectorAll('.list-container');
+                allContainers.forEach(c => {
+                    if (c.children[index]) {
+                        c.children[index].remove();
+                    }
+                });
+                
+                const prefix = tr.dataset.prefix;
+                if (prefix) {
+                    const indCell = tr.cells[1];
+                    if (indCell) {
+                        const listItems = indCell.querySelectorAll('.list-item');
+                        listItems.forEach((item, idx) => {
+                            item.querySelectorAll('.ind-prefix').forEach((prefixSpan) => {
+                                prefixSpan.innerText = `${prefix}.${idx + 1}`;
+                            });
+                        });
+                    }
+                }
+                
+                syncRowHeights(tr);
+            }
+        }
+
         function addItem(btn, usePrefix) {
             const tr = btn.closest('tr');
             const list = btn.closest('td').querySelector('.list-container');
@@ -1167,7 +1221,7 @@
             const count = list.querySelectorAll('.list-item').length;
             
             const newItem = document.createElement('div');
-            newItem.className = 'list-item';
+            newItem.className = 'list-item relative group/item';
             newItem.contentEditable = "true";
             
             let prefixHtml = '';
@@ -1175,7 +1229,8 @@
                 prefixHtml = `<span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${prefix}.${count + 1}</span> `;
             }
             
-            newItem.innerHTML = `<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
+            const delBtnHtml = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
+            newItem.innerHTML = `${delBtnHtml}<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
             list.appendChild(newItem);
             
             syncRowHeights(tr);
@@ -1196,27 +1251,30 @@
             const tbodies = document.querySelectorAll('.logframe-table tbody');
             let targetTbody = null;
             let trHTML = '';
-            const addBtnHtml = `<button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>`;
-            const addBtnHtmlTrue = `<button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity" contenteditable="false"><i class="fas fa-plus"></i> <span data-i18n="btn-add">Add</span></button>`;
+            const addBtnHtml = `<button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>`;
+            const addBtnHtmlTrue = `<button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>`;
+            const delBtnHtml = `<button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer" title="Delete Row"><i class="fas fa-minus text-[10px]"></i></button>`;
+            const itemDelBtn = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
 
             if (type === 'goal') {
                 targetTbody = tbodies[0];
                 trHTML = `
                     <tr class="sync-row">
-                        <td class="editable-cell" contenteditable="true">
+                        <td class="editable-cell relative group" contenteditable="true">
+                            ${delBtnHtml}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal:</span> New Goal</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ:</span> ເປົ້າໝາຍໃໝ່</div>
                         </td>
                         <td class="bg-gray-100 relative group align-top has-list p-0">
-                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtmlTrue}
                         </td>
                         <td class="bg-gray-100 relative group align-top has-list p-0">
-                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
                         <td class="bg-gray-100 relative group align-top has-list p-0">
-                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
                     </tr>
@@ -1226,13 +1284,15 @@
                 const count = targetTbody.querySelectorAll('.purpose-row').length + 1;
                 trHTML = `
                     <tr class="purpose-row sync-row" data-prefix="${count}">
-                        <td class="editable-cell" contenteditable="true">
+                        <td class="editable-cell relative group" contenteditable="true">
+                            ${delBtnHtml}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">${count}.</span> New Purpose</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">${count}.</span> ຈຸດປະສົງໃໝ່</div>
                         </td>
                         <td class="bg-white relative group align-top has-list p-0">
                             <div class="list-container">
-                                <div class="list-item" contenteditable="true">
+                                <div class="list-item relative group/item" contenteditable="true">
+                                    ${itemDelBtn}
                                     <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${count}.1</span> New Indicator</div>
                                     <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${count}.1</span> ຕົວຊີ້ວັດໃໝ່</div>
                                 </div>
@@ -1240,11 +1300,11 @@
                             ${addBtnHtmlTrue}
                         </td>
                         <td class="bg-white relative group align-top has-list p-0">
-                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
                         <td class="bg-white relative group align-top has-list p-0">
-                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
                     </tr>
@@ -1253,13 +1313,15 @@
                 targetTbody = tbodies[2];
                 trHTML = `
                     <tr class="output-row sync-row" data-prefix="X.X">
-                        <td class="!bg-white editable-cell" contenteditable="true">
+                        <td class="!bg-white editable-cell relative group" contenteditable="true">
+                            ${delBtnHtml}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output X.X:</span> New Output</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ X.X:</span> ຜົນໄດ້ຮັບໃໝ່</div>
                         </td>
                         <td class="!bg-white relative group align-top has-list p-0">
                             <div class="list-container">
-                                <div class="list-item" contenteditable="true">
+                                <div class="list-item relative group/item" contenteditable="true">
+                                    ${itemDelBtn}
                                     <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">X.X.1</span> New Indicator</div>
                                     <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">X.X.1</span> ຕົວຊີ້ວັດໃໝ່</div>
                                 </div>
@@ -1267,11 +1329,11 @@
                             ${addBtnHtmlTrue}
                         </td>
                         <td class="!bg-white relative group align-top has-list p-0">
-                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
                         <td class="!bg-white relative group align-top has-list p-0">
-                            <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
+                            <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
                     </tr>
@@ -1280,7 +1342,8 @@
                 targetTbody = tbodies[3];
                 trHTML = `
                     <tr>
-                        <td class="!bg-white editable-cell" contenteditable="true">
+                        <td class="!bg-white editable-cell relative group" contenteditable="true">
+                            ${delBtnHtml}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act X.X.X:</span> New Activity</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ X.X.X:</span> ກິດຈະກຳໃໝ່</div>
                         </td>
@@ -1755,6 +1818,8 @@
         window.switchTab = switchTab;
         window.addItem = addItem;
         window.addLogframeRow = addLogframeRow;
+        window.deleteLogframeRow = deleteLogframeRow;
+        window.deleteListItem = deleteListItem;
         window.calcBudgetRow = calcBudgetRow;
         window.formatUnit = formatUnit;
         window.changeUnitType = changeUnitType;
@@ -1776,6 +1841,21 @@
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
+            // Inject delete buttons to existing static list-items to avoid massive HTML diff
+            document.querySelectorAll('.list-item').forEach(item => {
+                if (!item.classList.contains('group/item')) {
+                    item.classList.add('relative', 'group/item');
+                    const delBtn = document.createElement('button');
+                    delBtn.onclick = function() { deleteListItem(this); };
+                    delBtn.onmousedown = function(e) { e.stopPropagation(); };
+                    delBtn.contentEditable = "false";
+                    delBtn.className = "absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export";
+                    delBtn.title = "Delete";
+                    delBtn.innerHTML = '<i class="fas fa-times text-[10px]"></i>';
+                    item.insertBefore(delBtn, item.firstChild);
+                }
+            });
+
             switchTab('logframe');
             setLanguage('lo');
             setupAutoNumbering();
