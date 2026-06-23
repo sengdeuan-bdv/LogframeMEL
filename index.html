@@ -47,7 +47,7 @@
         .list-item:focus { background-color: #ffffff; box-shadow: inset 0 0 0 2px #3b82f6; }
         .list-item:hover:not(:focus) { background-color: #e0e7ff; cursor: text; }
 
-        .exporting .add-btn, .exporting .hide-on-export { display: none !important; }
+        .exporting .add-btn, .exporting .hide-on-export, .exporting .filter-btn { display: none !important; }
         
         /* Language Toggle Styles */
         body.lang-en .lao-text { display: none !important; }
@@ -223,6 +223,15 @@
 
         <!-- LOGFRAME TAB -->
         <div id="tab-logframe" class="tab-content w-full h-full overflow-hidden flex flex-col">
+            <div id="filter-banner" class="hidden bg-yellow-100 border-b border-yellow-300 p-2 flex justify-between items-center text-sm text-yellow-800 shadow-sm shrink-0">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-filter"></i>
+                    <span><span data-i18n="lbl-filtering">Filtering by:</span> <strong id="filter-text"></strong></span>
+                </div>
+                <button onclick="clearFilter()" class="bg-white hover:bg-gray-100 border border-yellow-400 px-3 py-1 rounded shadow-sm text-xs font-medium transition-colors">
+                    <i class="fas fa-times text-red-500 mr-1"></i> <span data-i18n="btn-clear-filter">Clear Filter</span>
+                </button>
+            </div>
             <div class="table-container flex-1 overflow-auto bg-gray-200 p-2">
                 <table class="logframe-table w-full border-collapse min-w-[1000px] text-sm">
                     <colgroup>
@@ -244,23 +253,25 @@
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
                         </tr>
-                        <tr class="sync-row">
+                        <tr class="sync-row" data-prefix="1" data-ref="goal-1">
                             <td class="editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
-                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal:</span> Achieve gender equality and empower all women and girls</div>
-                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete Row"><i class="fas fa-minus text-[10px]"></i></button>
+                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-7 bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter by this Goal"><i class="fas fa-filter text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('goal', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-13 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Goal Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal 1:</span> Achieve gender equality and empower all women and girls</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ 1:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
                             <td class="bg-gray-100 relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="bg-gray-100 relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="bg-gray-100 relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                         </tr>
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
@@ -278,28 +289,39 @@
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
                         </tr>
-                        <tr class="purpose-row sync-row" data-prefix="1">
+                        <tr class="blue-ribbon" data-parent-ref="goal-1">
+                            <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Purpose Inside"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal 1:</span> Achieve gender equality and empower all women and girls</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ 1:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
+                            </td>
+                        </tr>
+                        <tr class="purpose-row sync-row" data-prefix="1.1" data-ref="purp-1-1">
                             <td class="editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
-                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.</span> End all forms of discrimination against all women and girls</div>
-                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
+                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-7 bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter"><i class="fas fa-filter text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-13 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Purpose Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.1</span> End all forms of discrimination against all women and girls</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.1</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
                             <td class="bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
-                                    <div class="list-item" contenteditable="true">
-                                        <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1</span> Legal frameworks in place to promote equality</div>
-                                        <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1</span> ມີກອບກົດໝາຍເພື່ອສົ່ງເສີມຄວາມສະເໝີພາບ</div>
+                                    <div class="list-item relative group/item" contenteditable="true">
+                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
+                                        <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1</span> Legal frameworks in place to promote equality</div>
+                                        <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1</span> ມີກອບກົດໝາຍເພື່ອສົ່ງເສີມຄວາມສະເໝີພາບ</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="bg-white relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="bg-white relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item" contenteditable="true"><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                         </tr>
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
@@ -317,45 +339,51 @@
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
                         </tr>
-                        <tr class="blue-ribbon">
+                        <tr class="blue-ribbon" data-parent-ref="purp-1-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
-                                <div class="en-text">End all forms of discrimination against all women and girls everywhere</div>
-                                <div class="lao-text">ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງໃນທຸກຫົນທຸກແຫ່ງ</div>
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Output Inside"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.1</span> End all forms of discrimination against all women and girls</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.1</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
                         </tr>
-                        <tr class="output-row sync-row" data-prefix="1.1">
+                        <tr class="output-row sync-row" data-prefix="1.1.1" data-ref="out-1-1-1">
                             <td class="!bg-white editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
-                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1:</span> Legal reviews conducted.</div>
-                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
+                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-7 bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter"><i class="fas fa-filter text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-13 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Output Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1.1:</span> Legal reviews conducted.</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
                             </td>
                             <td class="!bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
-                                    <div class="list-item" contenteditable="true">
-                                        <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1</span> Number of reviews completed.</div>
-                                        <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1</span> ຈຳນວນການທົບທວນທີ່ສຳເລັດ.</div>
+                                    <div class="list-item relative group/item" contenteditable="true">
+                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
+                                        <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1.1</span> Number of reviews completed.</div>
+                                        <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1.1</span> ຈຳນວນການທົບທວນທີ່ສຳເລັດ.</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="!bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
-                                    <div class="list-item" contenteditable="true">
+                                    <div class="list-item relative group/item" contenteditable="true">
+                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
                                         <div class="en-text">Project Reports</div>
                                         <div class="lao-text">ບົດລາຍງານໂຄງການ</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                             <td class="!bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
-                                    <div class="list-item" contenteditable="true">
+                                    <div class="list-item relative group/item" contenteditable="true">
+                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
                                         <div class="en-text">Government willingness.</div>
                                         <div class="lao-text">ຄວາມເຕັມໃຈຂອງລັດຖະບານ</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
                             </td>
                         </tr>
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
@@ -373,18 +401,20 @@
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-budget">Budget</th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
                         </tr>
-                        <tr class="blue-ribbon">
+                        <tr class="blue-ribbon" data-parent-ref="out-1-1-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
-                                <div class="en-text">Output 1.1: Legal reviews conducted.</div>
-                                <div class="lao-text">ຜົນໄດ້ຮັບ 1.1: ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Activity Inside"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1.1:</span> Legal reviews conducted.</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
                             </td>
                         </tr>
                         <tr>
                             <td class="!bg-white editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer"><i class="fas fa-minus text-[10px]"></i></button>
-                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act 1.1.1:</span> Hire legal consultants</div>
-                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ 1.1.1:</span> ຈ້າງທີ່ປຶກສາດ້ານກົດໝາຍ</div>
+                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Activity Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act 1.1.1.1:</span> Hire legal consultants</div>
+                                <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ 1.1.1.1:</span> ຈ້າງທີ່ປຶກສາດ້ານກົດໝາຍ</div>
                             </td>
                             <td class="!bg-white editable-cell" contenteditable="true">
                                 <div class="en-text">Legal Consultants (4 Months)</div>
@@ -575,7 +605,9 @@
                 'lbl-ready': 'Ready',
                 'lbl-paste-modal': 'Paste Text',
                 'desc-paste-modal': 'Please paste your text below (Ctrl+V) and click Insert.',
-                'btn-insert': 'Insert'
+                'btn-insert': 'Insert',
+                'lbl-filtering': 'Filtering by:',
+                'btn-clear-filter': 'Clear Filter'
             },
             'lo': {
                 'menu-project': 'ໂຄງການ',
@@ -605,7 +637,9 @@
                 'lbl-ready': 'ພ້ອມໃຊ້ງານ',
                 'lbl-paste-modal': 'ວາງຂໍ້ຄວາມ',
                 'desc-paste-modal': 'ກະລຸນາວາງຂໍ້ຄວາມຂອງທ່ານລົງໃນຫ້ອງລຸ່ມນີ້ (Ctrl+V) ແລ້ວກົດປຸ່ມເພີ່ມລົງໄປ.',
-                'btn-insert': 'ເພີ່ມລົງໄປ'
+                'btn-insert': 'ເພີ່ມລົງໄປ',
+                'lbl-filtering': 'ກຳລັງສະແດງສະເພາະ:',
+                'btn-clear-filter': 'ສະແດງທັງໝົດ'
             }
         };
 
@@ -628,7 +662,6 @@
                     auth = getAuth(app);
                     db = getFirestore(app);
 
-                    // Auth logic (RULE 3)
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
                     } else {
@@ -638,8 +671,6 @@
                     onAuthStateChanged(auth, (user) => {
                         currentUser = user;
                         if (user) {
-                            console.log("Firebase Auth Success:", user.uid);
-                            // Automatically load state from cloud cache (Rule 3 Guarded inside)
                             loadFromCache(false);
                         }
                     });
@@ -649,7 +680,6 @@
             }
         }
 
-        // Exponential backoff helper
         async function withRetry(fn) {
             let delay = 1000;
             for (let i = 0; i < 5; i++) {
@@ -686,7 +716,6 @@
                 return;
             }
             try {
-                // Rule 1 Compliant Path
                 const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'cache', 'latest');
                 
                 const customHeaders = {
@@ -730,7 +759,6 @@
                 return;
             }
             try {
-                // Rule 1 Compliant Path
                 const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'cache', 'latest');
                 const docSnap = await getDoc(docRef);
 
@@ -978,6 +1006,9 @@
             
             const tableClone = tableSource.cloneNode(true);
             tableClone.querySelectorAll('.add-btn').forEach(btn => btn.remove());
+            tableClone.querySelectorAll('.hide-on-export').forEach(btn => btn.remove());
+            
+            tableClone.querySelectorAll('tr.hidden').forEach(tr => tr.remove());
             
             if (currentLang === 'en') {
                 tableClone.querySelectorAll('.lao-text').forEach(el => el.remove());
@@ -1069,16 +1100,28 @@
         // -----------------------------------------------------------------
         let savedSelectionRange = null;
 
-        function pasteValue() {
+        async function pasteValue() {
             const sel = window.getSelection();
             if (sel.rangeCount > 0) {
                 savedSelectionRange = sel.getRangeAt(0);
             }
             
-            const modal = document.getElementById('paste-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            setTimeout(() => document.getElementById('paste-textarea').focus(), 100);
+            try {
+                // Try to read from clipboard directly
+                const text = await navigator.clipboard.readText();
+                if (savedSelectionRange) {
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelectionRange);
+                }
+                document.execCommand('insertText', false, text);
+            } catch (err) {
+                // Fallback to Modal if Browser blocks automatic clipboard reading in Iframe
+                console.warn('Clipboard read failed, falling back to modal:', err);
+                const modal = document.getElementById('paste-modal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                setTimeout(() => document.getElementById('paste-textarea').focus(), 100);
+            }
         }
 
         function closePasteModal() {
@@ -1176,6 +1219,10 @@
         function deleteLogframeRow(btn) {
             const tr = btn.closest('tr');
             if (tr) {
+                if (tr.dataset.ref) {
+                    const ribbons = document.querySelectorAll(`tr.blue-ribbon[data-parent-ref="${tr.dataset.ref}"]`);
+                    ribbons.forEach(ribbon => ribbon.remove());
+                }
                 tr.remove();
                 syncAllHeights();
             }
@@ -1247,23 +1294,40 @@
             }
         }
 
-        function addLogframeRow(type) {
+        function addLogframeRow(type, referenceBtn = null) {
             const tbodies = document.querySelectorAll('.logframe-table tbody');
+            const uniqueId = 'id-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+
             let targetTbody = null;
             let trHTML = '';
-            const addBtnHtml = `<button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>`;
-            const addBtnHtmlTrue = `<button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>`;
-            const delBtnHtml = `<button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer" title="Delete Row"><i class="fas fa-minus text-[10px]"></i></button>`;
+            let ribbonTbody = null;
+            let ribbonHTML = '';
+            
+            let ribbonAddType = '';
+            if (type === 'goal') ribbonAddType = 'purpose';
+            else if (type === 'purpose') ribbonAddType = 'output';
+            else if (type === 'output') ribbonAddType = 'activity';
+
+            const addBtnHtml = `<button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>`;
+            const addBtnHtmlTrue = `<button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>`;
             const itemDelBtn = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
+
+            const delBtn = `<button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete Row"><i class="fas fa-minus text-[10px]"></i></button>`;
+            const filterBtn = `<button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-7 bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter by this Goal"><i class="fas fa-filter text-[10px]"></i></button>`;
+            
+            const addBelowRowBtn = `<button onclick="addLogframeRow('${type}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-13 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Row Below"><i class="fas fa-plus text-[10px]"></i></button>`;
+            const addBelowActBtn = `<button onclick="addLogframeRow('${type}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Row Below"><i class="fas fa-plus text-[10px]"></i></button>`;
+            const addBelowRibbonBtn = `<button onclick="addLogframeRow('${ribbonAddType}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Inside"><i class="fas fa-plus text-[10px]"></i></button>`;
 
             if (type === 'goal') {
                 targetTbody = tbodies[0];
+                const count = targetTbody.querySelectorAll('.sync-row').length + 1;
                 trHTML = `
-                    <tr class="sync-row">
+                    <tr class="sync-row" data-prefix="${count}" data-ref="${uniqueId}">
                         <td class="editable-cell relative group" contenteditable="true">
-                            ${delBtnHtml}
-                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal:</span> New Goal</div>
-                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ:</span> ເປົ້າໝາຍໃໝ່</div>
+                            ${delBtn} ${filterBtn} ${addBelowRowBtn}
+                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal ${count}:</span> New Goal</div>
+                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ ${count}:</span> ເປົ້າໝາຍໃໝ່</div>
                         </td>
                         <td class="bg-gray-100 relative group align-top has-list p-0">
                             <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
@@ -1279,13 +1343,24 @@
                         </td>
                     </tr>
                 `;
+                
+                ribbonTbody = tbodies[1];
+                ribbonHTML = `
+                    <tr class="blue-ribbon" data-parent-ref="${uniqueId}">
+                        <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
+                            ${delBtn} ${addBelowRibbonBtn}
+                            <div class="en-text">Goal ${count}: New Goal</div>
+                            <div class="lao-text">ເປົ້າໝາຍ ${count}: ເປົ້າໝາຍໃໝ່</div>
+                        </td>
+                    </tr>
+                `;
             } else if (type === 'purpose') {
                 targetTbody = tbodies[1];
                 const count = targetTbody.querySelectorAll('.purpose-row').length + 1;
                 trHTML = `
-                    <tr class="purpose-row sync-row" data-prefix="${count}">
+                    <tr class="purpose-row sync-row" data-prefix="${count}" data-ref="${uniqueId}">
                         <td class="editable-cell relative group" contenteditable="true">
-                            ${delBtnHtml}
+                            ${delBtn} ${filterBtn} ${addBelowRowBtn}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">${count}.</span> New Purpose</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">${count}.</span> ຈຸດປະສົງໃໝ່</div>
                         </td>
@@ -1309,12 +1384,23 @@
                         </td>
                     </tr>
                 `;
+                
+                ribbonTbody = tbodies[2];
+                ribbonHTML = `
+                    <tr class="blue-ribbon" data-parent-ref="${uniqueId}">
+                        <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
+                            ${delBtn} ${addBelowRibbonBtn}
+                            <div class="en-text">${count}. New Purpose</div>
+                            <div class="lao-text">${count}. ຈຸດປະສົງໃໝ່</div>
+                        </td>
+                    </tr>
+                `;
             } else if (type === 'output') {
                 targetTbody = tbodies[2];
                 trHTML = `
-                    <tr class="output-row sync-row" data-prefix="X.X">
+                    <tr class="output-row sync-row" data-prefix="X.X" data-ref="${uniqueId}">
                         <td class="!bg-white editable-cell relative group" contenteditable="true">
-                            ${delBtnHtml}
+                            ${delBtn} ${filterBtn} ${addBelowRowBtn}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output X.X:</span> New Output</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ X.X:</span> ຜົນໄດ້ຮັບໃໝ່</div>
                         </td>
@@ -1338,12 +1424,23 @@
                         </td>
                     </tr>
                 `;
+                
+                ribbonTbody = tbodies[3];
+                ribbonHTML = `
+                    <tr class="blue-ribbon" data-parent-ref="${uniqueId}">
+                        <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
+                            ${delBtn} ${addBelowRibbonBtn}
+                            <div class="en-text">Output X.X: New Output</div>
+                            <div class="lao-text">ຜົນໄດ້ຮັບ X.X: ຜົນໄດ້ຮັບໃໝ່</div>
+                        </td>
+                    </tr>
+                `;
             } else if (type === 'activity') {
                 targetTbody = tbodies[3];
                 trHTML = `
                     <tr>
                         <td class="!bg-white editable-cell relative group" contenteditable="true">
-                            ${delBtnHtml}
+                            ${delBtn} ${addBelowActBtn}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act X.X.X:</span> New Activity</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ X.X.X:</span> ກິດຈະກຳໃໝ່</div>
                         </td>
@@ -1357,42 +1454,90 @@
                 `;
             }
 
-            if (targetTbody && trHTML) {
-                const rows = targetTbody.querySelectorAll('tr');
-                let spacer = null;
-                if(rows.length > 0 && rows[rows.length-1].querySelector('td[colspan="4"]')?.classList.contains('h-4')) {
-                    spacer = rows[rows.length-1];
-                }
-
+            const insertRow = (tbody, html, refNode) => {
                 const tempDiv = document.createElement('table');
-                tempDiv.innerHTML = `<tbody>${trHTML}</tbody>`;
+                tempDiv.innerHTML = `<tbody>${html}</tbody>`;
                 const newRow = tempDiv.querySelector('tr');
 
-                if (spacer) {
-                    targetTbody.insertBefore(newRow, spacer);
+                if (refNode) {
+                    refNode.parentNode.insertBefore(newRow, refNode.nextElementSibling);
                 } else {
-                    targetTbody.appendChild(newRow);
+                    const rows = tbody.querySelectorAll('tr');
+                    let spacer = null;
+                    if(rows.length > 0 && rows[rows.length-1].querySelector('td[colspan="4"]')?.classList.contains('h-4')) {
+                        spacer = rows[rows.length-1];
+                    }
+                    if (spacer) {
+                        tbody.insertBefore(newRow, spacer);
+                    } else {
+                        tbody.appendChild(newRow);
+                    }
                 }
-                
-                setLanguage(currentLang);
+                return newRow;
+            };
+
+            if (targetTbody && trHTML) {
+                let refNode = referenceBtn ? referenceBtn.closest('tr') : null;
+                const newRow = insertRow(targetTbody, trHTML, refNode);
                 if (newRow.classList.contains('sync-row')) syncRowHeights(newRow);
             }
+            if (ribbonTbody && ribbonHTML) {
+                insertRow(ribbonTbody, ribbonHTML, null);
+            }
+            
+            setLanguage(currentLang);
         }
 
-        function setupAutoNumbering() {
+        function setupLiveSync() {
             const logframeTable = document.querySelector('.logframe-table');
             if (!logframeTable) return;
             logframeTable.addEventListener('input', function(e) {
                 if (!e.target.classList.contains('editable-cell') && !e.target.classList.contains('list-item') && !e.target.classList.contains('en-text') && !e.target.classList.contains('lao-text')) return;
                 const cell = e.target.closest('td');
                 const row = e.target.closest('tr');
+                if (!cell || !row) return;
+
                 if (row.classList.contains('sync-row')) syncRowHeights(row);
                 
-                if (cell && cell.cellIndex === 0) {
-                    const text = cell.textContent.trim();
-                    const match = text.match(/([0-9]+(?:\.[0-9]+)*)/);
+                // Sync Ribbon Title
+                if (cell.cellIndex === 0 && row.dataset.ref) {
+                    const enDiv = cell.querySelector('.en-text');
+                    const laDiv = cell.querySelector('.lao-text');
+                    
+                    const ribbons = document.querySelectorAll(`tr.blue-ribbon[data-parent-ref="${row.dataset.ref}"]`);
+                    ribbons.forEach(ribbon => {
+                        const rCell = ribbon.cells[0];
+                        const rEn = rCell.querySelector('.en-text');
+                        const rLa = rCell.querySelector('.lao-text');
+                        if (enDiv && rEn && rEn.innerHTML !== enDiv.innerHTML) rEn.innerHTML = enDiv.innerHTML;
+                        if (laDiv && rLa && rLa.innerHTML !== laDiv.innerHTML) rLa.innerHTML = laDiv.innerHTML;
+                    });
+                }
+
+                // Sync AutoNumbering to LA and Indicators
+                if (cell.cellIndex === 0 && e.target.classList.contains('en-text')) {
+                    const enText = e.target.textContent.trim();
+                    const match = enText.match(/([\w\d]+(?:\.[\w\d]+)*)/);
                     if (match && match[1]) {
                         const baseNumber = match[1];
+                        const laDiv = cell.querySelector('.lao-text');
+                        
+                        if (laDiv) {
+                            const laText = laDiv.innerHTML;
+                            const spanMatch = laText.match(/<span[^>]*>(.*?)<\/span>/);
+                            if (spanMatch) {
+                                const oldPrefix = spanMatch[1];
+                                let newPrefix = baseNumber;
+                                if(oldPrefix.endsWith('.')) newPrefix += '.';
+                                else if(oldPrefix.endsWith(':')) newPrefix += ':';
+                                
+                                const newHTML = laText.replace(spanMatch[0], spanMatch[0].replace(oldPrefix, newPrefix));
+                                if (laDiv.innerHTML !== newHTML) {
+                                    laDiv.innerHTML = newHTML;
+                                }
+                            }
+                        }
+
                         if (row.dataset.prefix !== baseNumber) {
                             const indCell = row.cells[1];
                             if (indCell) {
@@ -1407,6 +1552,74 @@
                         }
                     }
                 }
+            });
+        }
+
+        // Filtering Logic
+        let activeFilterPrefix = null;
+
+        function filterByGoal(btn) {
+            const tr = btn.closest('tr');
+            const cell = tr.cells[0];
+            const enText = cell.querySelector('.en-text')?.textContent.trim() || '';
+            const match = enText.match(/(?:Goal\s*)?([\w\d]+(?:\.[\w\d]+)*)/i);
+            
+            if (match && match[1]) {
+                activeFilterPrefix = match[1];
+                
+                const isNumeric = /^\d+$/.test(activeFilterPrefix);
+                let searchPrefix = activeFilterPrefix;
+                if(isNumeric) searchPrefix += '.';
+
+                document.getElementById('filter-text').innerText = `Goal ${activeFilterPrefix}`;
+                document.getElementById('filter-banner').classList.remove('hidden');
+
+                const tbodies = document.querySelectorAll('.logframe-table tbody');
+                
+                tbodies[0].querySelectorAll('tr.sync-row').forEach(row => {
+                    if (row !== tr) row.classList.add('hidden');
+                });
+
+                for (let i = 1; i < tbodies.length; i++) {
+                    tbodies[i].querySelectorAll('tr').forEach(row => {
+                        if (row.querySelector('th')) return;
+                        
+                        const rowText = row.cells[0]?.textContent.trim() || '';
+                        
+                        if (row.querySelector('td[colspan="4"]')?.classList.contains('h-4')) return;
+
+                        if (row.classList.contains('blue-ribbon')) {
+                            const textToSearch1 = `Goal ${activeFilterPrefix}`;
+                            const textToSearch2 = `ເປົ້າໝາຍ ${activeFilterPrefix}`;
+                            const textToSearch3 = `${activeFilterPrefix}.`;
+                            const textToSearch4 = `Output ${activeFilterPrefix}`;
+                            const textToSearch5 = `ຜົນໄດ້ຮັບ ${activeFilterPrefix}`;
+                            
+                            if (rowText.includes(textToSearch1) || rowText.includes(textToSearch2) || rowText.includes(textToSearch3) || rowText.includes(searchPrefix) || rowText.includes(textToSearch4) || rowText.includes(textToSearch5)) {
+                                row.classList.remove('hidden');
+                            } else {
+                                row.classList.add('hidden');
+                            }
+                            return;
+                        }
+
+                        if (rowText.includes(searchPrefix) || (row.dataset.prefix && row.dataset.prefix.startsWith(searchPrefix))) {
+                            row.classList.remove('hidden');
+                        } else {
+                            row.classList.add('hidden');
+                        }
+                    });
+                }
+            } else {
+                showToast("Cannot identify Goal number for filtering.", "error");
+            }
+        }
+
+        function clearFilter() {
+            activeFilterPrefix = null;
+            document.getElementById('filter-banner').classList.add('hidden');
+            document.querySelectorAll('.logframe-table tr.hidden').forEach(row => {
+                row.classList.remove('hidden');
             });
         }
 
@@ -1838,6 +2051,8 @@
         window.loadFromCache = loadFromCache;
         window.closePasteModal = closePasteModal;
         window.confirmPaste = confirmPaste;
+        window.filterByGoal = filterByGoal;
+        window.clearFilter = clearFilter;
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
@@ -1858,7 +2073,7 @@
 
             switchTab('logframe');
             setLanguage('lo');
-            setupAutoNumbering();
+            setupLiveSync();
             setTimeout(syncAllHeights, 100);
             
             // Start Firebase setup (Rule 3)
