@@ -60,10 +60,14 @@
         body.lang-lo .lao-text { color: inherit; font-size: inherit; margin-top: 0; }
         
         .en-text, .lao-text { outline: none; min-height: 1.2em; word-break: break-word; }
+
+        /* Level Visibility Styles */
+        body.show-levels-3 .level-4-section { display: none !important; }
+        body.show-levels-2 .level-3-section, body.show-levels-2 .level-4-section { display: none !important; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-<body class="h-screen flex flex-col overflow-hidden lang-lo">
+<body class="h-screen flex flex-col overflow-hidden lang-lo show-levels-4">
 
     <div class="bg-blue-50 border-b border-blue-200 p-2 flex flex-col gap-2 shrink-0 hide-on-export">
         <div class="flex justify-between items-center mb-1 px-2">
@@ -186,6 +190,18 @@
         <div id="tab-settings" class="tab-content hidden w-full h-full p-6 overflow-y-auto">
             <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2" data-i18n="tab-settings">Settings</h2>
             
+            <div class="bg-gray-50 p-6 rounded-lg border shadow-sm max-w-4xl mb-6">
+                <h3 class="text-lg font-bold text-gray-700 mb-2 border-b pb-2" data-i18n="lbl-logframe-structure">Logframe Structure</h3>
+                <div class="flex items-center gap-4">
+                    <label class="text-sm font-medium text-gray-700" data-i18n="lbl-num-levels">Number of Levels:</label>
+                    <select id="num-levels-select" onchange="changeNumLevels(this.value)" class="border border-gray-300 rounded p-2 text-sm outline-none focus:border-blue-500 bg-white">
+                        <option value="4" data-i18n="opt-levels-4" selected>4 Levels (Goals, Purposes, Outputs, Activities)</option>
+                        <option value="3" data-i18n="opt-levels-3">3 Levels (Goals, Purposes, Outputs)</option>
+                        <option value="2" data-i18n="opt-levels-2">2 Levels (Goals, Purposes)</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="bg-gray-50 p-6 rounded-lg border shadow-sm max-w-4xl">
                 <h3 class="text-lg font-bold text-gray-700 mb-2 border-b pb-2" data-i18n="lbl-custom-headers">Customize Logframe Headers</h3>
                 <p class="text-sm text-gray-600 mb-6" data-i18n="desc-custom-headers">Change the default terms for the logical framework levels to match your project's specific terminology.</p>
@@ -207,12 +223,12 @@
                         <div class="col-span-4"><input type="text" id="set-purp-en" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="Purposes" oninput="updateCustomHeader('en', 'th-purposes', this.value)"></div>
                         <div class="col-span-4"><input type="text" id="set-purp-lo" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="ຈຸດປະສົງ (Purposes)" oninput="updateCustomHeader('lo', 'th-purposes', this.value)"></div>
                     </div>
-                    <div class="grid grid-cols-12 gap-4 items-center bg-white p-3 border rounded shadow-sm">
+                    <div class="grid grid-cols-12 gap-4 items-center bg-white p-3 border rounded shadow-sm level-3-section">
                         <div class="col-span-4 font-semibold text-gray-800 px-2" data-i18n="lbl-lvl3">Level 3</div>
                         <div class="col-span-4"><input type="text" id="set-out-en" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="Outputs" oninput="updateCustomHeader('en', 'th-outputs', this.value)"></div>
                         <div class="col-span-4"><input type="text" id="set-out-lo" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="ຜົນໄດ້ຮັບ (Outputs)" oninput="updateCustomHeader('lo', 'th-outputs', this.value)"></div>
                     </div>
-                    <div class="grid grid-cols-12 gap-4 items-center bg-white p-3 border rounded shadow-sm">
+                    <div class="grid grid-cols-12 gap-4 items-center bg-white p-3 border rounded shadow-sm level-4-section">
                         <div class="col-span-4 font-semibold text-gray-800 px-2" data-i18n="lbl-lvl4">Level 4 (Actions)</div>
                         <div class="col-span-4"><input type="text" id="set-act-en" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="Activities" oninput="updateCustomHeader('en', 'th-activities', this.value)"></div>
                         <div class="col-span-4"><input type="text" id="set-act-lo" class="border rounded p-2 w-full text-sm outline-none focus:border-blue-500" value="ກິດຈະກຳ (Activities)" oninput="updateCustomHeader('lo', 'th-activities', this.value)"></div>
@@ -241,7 +257,7 @@
                         <col style="width: 15%;">
                     </colgroup>
                     
-                    <tbody>
+                    <tbody id="tbody-goals">
                         <tr>
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative">
                                 <div class="flex items-center justify-center gap-2">
@@ -256,8 +272,8 @@
                         <tr class="sync-row" data-prefix="1" data-ref="goal-1">
                             <td class="editable-cell relative group" contenteditable="true">
                                 <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete Row"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-7 bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter by this Goal"><i class="fas fa-filter text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('goal', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-13 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Goal Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-[28px] bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter by this Goal"><i class="fas fa-filter text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('goal', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[52px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Goal Below"><i class="fas fa-plus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal 1:</span> Achieve gender equality and empower all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ 1:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
@@ -277,7 +293,7 @@
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
                     </tbody>
 
-                    <tbody>
+                    <tbody id="tbody-purposes">
                         <tr>
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative">
                                 <div class="flex items-center justify-center gap-2">
@@ -292,7 +308,7 @@
                         <tr class="blue-ribbon" data-parent-ref="goal-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
                                 <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Purpose Inside"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Purpose Inside"><i class="fas fa-plus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal 1:</span> Achieve gender equality and empower all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ 1:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
@@ -300,8 +316,8 @@
                         <tr class="purpose-row sync-row" data-prefix="1.1" data-ref="purp-1-1">
                             <td class="editable-cell relative group" contenteditable="true">
                                 <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-7 bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter"><i class="fas fa-filter text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-13 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Purpose Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-[28px] bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter"><i class="fas fa-filter text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[52px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Purpose Below"><i class="fas fa-plus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.1</span> End all forms of discrimination against all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.1</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
@@ -327,7 +343,7 @@
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
                     </tbody>
 
-                    <tbody>
+                    <tbody id="tbody-outputs" class="level-3-section">
                         <tr>
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative">
                                 <div class="flex items-center justify-center gap-2">
@@ -342,7 +358,7 @@
                         <tr class="blue-ribbon" data-parent-ref="purp-1-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
                                 <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Output Inside"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="level-3-section absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Output Inside"><i class="fas fa-plus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.1</span> End all forms of discrimination against all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.1</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
@@ -350,8 +366,8 @@
                         <tr class="output-row sync-row" data-prefix="1.1.1" data-ref="out-1-1-1">
                             <td class="!bg-white editable-cell relative group" contenteditable="true">
                                 <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-7 bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter"><i class="fas fa-filter text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-13 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Output Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-[28px] bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter"><i class="fas fa-filter text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[52px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Output Below"><i class="fas fa-plus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1.1:</span> Legal reviews conducted.</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
                             </td>
@@ -389,7 +405,7 @@
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
                     </tbody>
 
-                    <tbody>
+                    <tbody id="tbody-activities" class="level-4-section">
                         <tr>
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative">
                                 <div class="flex items-center justify-center gap-2">
@@ -404,15 +420,15 @@
                         <tr class="blue-ribbon" data-parent-ref="out-1-1-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
                                 <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Activity Inside"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="level-4-section absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Activity Inside"><i class="fas fa-plus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1.1:</span> Legal reviews conducted.</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
                             </td>
                         </tr>
-                        <tr>
+                        <tr class="activity-row" data-prefix="1.1.1.1" data-ref="act-1-1-1-1">
                             <td class="!bg-white editable-cell relative group" contenteditable="true">
                                 <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Activity Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Activity Below"><i class="fas fa-plus text-[10px]"></i></button>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act 1.1.1.1:</span> Hire legal consultants</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ 1.1.1.1:</span> ຈ້າງທີ່ປຶກສາດ້ານກົດໝາຍ</div>
                             </td>
@@ -554,19 +570,6 @@
         </div>
     </div>
 
-    <!-- Paste Modal -->
-    <div id="paste-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-[400px]">
-            <h3 class="text-lg font-bold mb-2 text-gray-800" data-i18n="lbl-paste-modal">Paste Text</h3>
-            <p class="text-sm text-gray-600 mb-4" data-i18n="desc-paste-modal">Please paste your text below (Ctrl+V) and click Insert.</p>
-            <textarea id="paste-textarea" class="w-full border border-gray-300 rounded-md p-2 h-32 focus:ring-blue-500 outline-none text-sm" placeholder="..."></textarea>
-            <div class="mt-4 flex justify-end gap-2">
-                <button onclick="closePasteModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-medium transition-colors" data-i18n="btn-cancel">Cancel</button>
-                <button onclick="confirmPaste()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-medium transition-colors" data-i18n="btn-insert">Insert</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Firebase + App Script Module -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -603,11 +606,13 @@
                 'desc-export-raw': 'Plain text without colors (.xlsx / .doc)',
                 'btn-cancel': 'Cancel',
                 'lbl-ready': 'Ready',
-                'lbl-paste-modal': 'Paste Text',
-                'desc-paste-modal': 'Please paste your text below (Ctrl+V) and click Insert.',
-                'btn-insert': 'Insert',
                 'lbl-filtering': 'Filtering by:',
-                'btn-clear-filter': 'Clear Filter'
+                'btn-clear-filter': 'Clear Filter',
+                'lbl-logframe-structure': 'Logframe Structure',
+                'lbl-num-levels': 'Number of Levels:',
+                'opt-levels-4': '4 Levels (Goals, Purposes, Outputs, Activities)',
+                'opt-levels-3': '3 Levels (Goals, Purposes, Outputs)',
+                'opt-levels-2': '2 Levels (Goals, Purposes)'
             },
             'lo': {
                 'menu-project': 'ໂຄງການ',
@@ -635,16 +640,19 @@
                 'desc-export-raw': 'ຕາຕະລາງທຳມະດາ ບໍ່ມີສີສັນ (.xlsx / .doc)',
                 'btn-cancel': 'ຍົກເລີກ',
                 'lbl-ready': 'ພ້ອມໃຊ້ງານ',
-                'lbl-paste-modal': 'ວາງຂໍ້ຄວາມ',
-                'desc-paste-modal': 'ກະລຸນາວາງຂໍ້ຄວາມຂອງທ່ານລົງໃນຫ້ອງລຸ່ມນີ້ (Ctrl+V) ແລ້ວກົດປຸ່ມເພີ່ມລົງໄປ.',
-                'btn-insert': 'ເພີ່ມລົງໄປ',
                 'lbl-filtering': 'ກຳລັງສະແດງສະເພາະ:',
-                'btn-clear-filter': 'ສະແດງທັງໝົດ'
+                'btn-clear-filter': 'ສະແດງທັງໝົດ',
+                'lbl-logframe-structure': 'ໂຄງສ້າງ Logframe',
+                'lbl-num-levels': 'ຈຳນວນລະດັບຊັ້ນ (Levels):',
+                'opt-levels-4': '4 ລະດັບ (ເປົ້າໝາຍ, ຈຸດປະສົງ, ຜົນໄດ້ຮັບ, ກິດຈະກຳ)',
+                'opt-levels-3': '3 ລະດັບ (ເປົ້າໝາຍ, ຈຸດປະສົງ, ຜົນໄດ້ຮັບ)',
+                'opt-levels-2': '2 ລະດັບ (ເປົ້າໝາຍ, ຈຸດປະສົງ)'
             }
         };
 
         let currentLang = 'lo';
         let trackingYearCount = 0;
+        let currentNumLevels = 4;
 
         // -----------------------------------------------------------------
         // Firebase Cloud Cache Setup
@@ -742,6 +750,7 @@
                     logframeHTML: document.querySelector('.logframe-table').innerHTML,
                     trackingHTML: document.querySelector('.tracking-table') ? document.querySelector('.tracking-table').innerHTML : '',
                     trackingYearCount: trackingYearCount,
+                    numLevels: currentNumLevels,
                     customHeaders: customHeaders,
                     updatedAt: new Date().toISOString()
                 }));
@@ -779,6 +788,11 @@
                     }
                     if (data.trackingYearCount !== undefined) trackingYearCount = data.trackingYearCount;
                     
+                    if (data.numLevels !== undefined) {
+                        document.getElementById('num-levels-select').value = data.numLevels;
+                        changeNumLevels(data.numLevels);
+                    }
+
                     if (data.customHeaders) {
                         document.getElementById('set-goal-en').value = data.customHeaders.en['th-goals'];
                         document.getElementById('set-purp-en').value = data.customHeaders.en['th-purposes'];
@@ -812,7 +826,7 @@
         // -----------------------------------------------------------------
         function setLanguage(lang) {
             currentLang = lang;
-            document.body.className = `h-screen flex flex-col overflow-hidden lang-${lang}`;
+            document.body.className = `h-screen flex flex-col overflow-hidden lang-${lang} show-levels-${currentNumLevels}`;
             
             document.getElementById('lang-en').className = lang === 'en' ? 'px-3 py-1 bg-blue-100 text-blue-800 transition-colors' : 'px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors';
             document.getElementById('lang-lo').className = lang === 'lo' ? 'px-3 py-1 bg-blue-100 text-blue-800 transition-colors' : 'px-3 py-1 hover:bg-gray-100 text-gray-500 transition-colors';
@@ -823,13 +837,15 @@
                 let textToSet = '';
                 
                 if (lang === 'bi') {
-                    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') {
+                    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && el.tagName !== 'OPTION') {
                         const enStr = dict['en'][key] || '';
                         const loStr = dict['lo'][key] || '';
                         
                         if(loStr.toLowerCase().includes(enStr.toLowerCase()) || enStr === '') textToSet = loStr;
                         else if (enStr.length < 15 && loStr.length < 15) textToSet = `${enStr} / ${loStr}`;
                         else textToSet = `${enStr}\n${loStr}`;
+                    } else if (el.tagName === 'OPTION') {
+                        textToSet = `${dict['en'][key]} / ${dict['lo'][key]}`;
                     }
                 } else {
                     if (dict[lang][key]) textToSet = dict[lang][key];
@@ -857,6 +873,16 @@
             if(value.trim() === '') return;
             dict[lang][key] = value;
             if (currentLang === lang || currentLang === 'bi') setLanguage(currentLang);
+        }
+
+        function changeNumLevels(val) {
+            currentNumLevels = parseInt(val);
+            document.body.classList.remove('show-levels-2', 'show-levels-3', 'show-levels-4');
+            document.body.classList.add('show-levels-' + currentNumLevels);
+            
+            syncPlanningFromLogframe();
+            syncBudget();
+            syncTracking();
         }
 
         function isGoalRow(text) {
@@ -943,6 +969,7 @@
                 logframeHTML: document.querySelector('.logframe-table').innerHTML,
                 trackingHTML: document.querySelector('.tracking-table') ? document.querySelector('.tracking-table').innerHTML : '',
                 trackingYearCount: trackingYearCount,
+                numLevels: currentNumLevels,
                 customHeaders: customHeaders
             };
             const jsonString = JSON.stringify(data, null, 2);
@@ -974,6 +1001,11 @@
                     }
                     if (data.trackingYearCount !== undefined) trackingYearCount = data.trackingYearCount;
                     
+                    if (data.numLevels !== undefined) {
+                        document.getElementById('num-levels-select').value = data.numLevels;
+                        changeNumLevels(data.numLevels);
+                    }
+
                     if (data.customHeaders) {
                         document.getElementById('set-goal-en').value = data.customHeaders.en['th-goals'];
                         document.getElementById('set-purp-en').value = data.customHeaders.en['th-purposes'];
@@ -1010,6 +1042,9 @@
             
             tableClone.querySelectorAll('tr.hidden').forEach(tr => tr.remove());
             
+            if (currentNumLevels < 3) tableClone.querySelectorAll('.level-3-section').forEach(el => el.remove());
+            if (currentNumLevels < 4) tableClone.querySelectorAll('.level-4-section').forEach(el => el.remove());
+
             if (currentLang === 'en') {
                 tableClone.querySelectorAll('.lao-text').forEach(el => el.remove());
             } else if (currentLang === 'lo') {
@@ -1115,37 +1150,8 @@
                 }
                 document.execCommand('insertText', false, text);
             } catch (err) {
-                // Fallback to Modal if Browser blocks automatic clipboard reading in Iframe
-                console.warn('Clipboard read failed, falling back to modal:', err);
-                const modal = document.getElementById('paste-modal');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                setTimeout(() => document.getElementById('paste-textarea').focus(), 100);
-            }
-        }
-
-        function closePasteModal() {
-            const modal = document.getElementById('paste-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.getElementById('paste-textarea').value = '';
-            
-            if (savedSelectionRange) {
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(savedSelectionRange);
-            }
-        }
-
-        function confirmPaste() {
-            const text = document.getElementById('paste-textarea').value;
-            closePasteModal();
-            
-            if (text && savedSelectionRange) {
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(savedSelectionRange);
-                document.execCommand('insertText', false, text);
+                console.warn('Clipboard read failed:', err);
+                showToast('ບຣາວເຊີປ້ອງກັນການວາງອັດຕະໂນມັດ, ກະລຸນາກົດປຸ່ມ Ctrl+V ເພື່ອວາງແທນ', 'error');
             }
         }
 
@@ -1294,6 +1300,20 @@
             }
         }
 
+        function incrementPrefix(prefix) {
+            const parts = prefix.split('.');
+            let lastPart = parts[parts.length - 1];
+            if (!isNaN(lastPart)) {
+                parts[parts.length - 1] = parseInt(lastPart) + 1;
+            } else if (lastPart.length === 1 && /[a-zA-Z]/.test(lastPart)) { 
+                let charCode = lastPart.charCodeAt(0);
+                parts[parts.length - 1] = String.fromCharCode(charCode + 1);
+            } else {
+                parts.push('1');
+            }
+            return parts.join('.');
+        }
+
         function addLogframeRow(type, referenceBtn = null) {
             const tbodies = document.querySelectorAll('.logframe-table tbody');
             const uniqueId = 'id-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
@@ -1313,21 +1333,46 @@
             const itemDelBtn = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
 
             const delBtn = `<button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete Row"><i class="fas fa-minus text-[10px]"></i></button>`;
-            const filterBtn = `<button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-7 bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter by this Goal"><i class="fas fa-filter text-[10px]"></i></button>`;
+            const filterBtn = `<button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-[28px] bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter by this Goal"><i class="fas fa-filter text-[10px]"></i></button>`;
             
-            const addBelowRowBtn = `<button onclick="addLogframeRow('${type}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-13 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Row Below"><i class="fas fa-plus text-[10px]"></i></button>`;
-            const addBelowActBtn = `<button onclick="addLogframeRow('${type}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Row Below"><i class="fas fa-plus text-[10px]"></i></button>`;
-            const addBelowRibbonBtn = `<button onclick="addLogframeRow('${ribbonAddType}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-7 bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Inside"><i class="fas fa-plus text-[10px]"></i></button>`;
+            const addBelowRowBtn = `<button onclick="addLogframeRow('${type}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[52px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Row Below"><i class="fas fa-plus text-[10px]"></i></button>`;
+            const addBelowActBtn = `<button onclick="addLogframeRow('${type}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Row Below"><i class="fas fa-plus text-[10px]"></i></button>`;
+            const addBelowRibbonBtn = `<button onclick="addLogframeRow('${ribbonAddType}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="level-${ribbonAddType === 'purpose' ? '2' : (ribbonAddType === 'output' ? '3' : '4')}-section absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Inside"><i class="fas fa-plus text-[10px]"></i></button>`;
+
+            // Calculating sequential prefix
+            let newPrefix = '';
+            if (referenceBtn) {
+                const tr = referenceBtn.closest('tr');
+                if (tr.classList.contains('blue-ribbon')) {
+                    // Extract parent prefix to use as base for children
+                    const enText = tr.querySelector('.en-text')?.textContent || '';
+                    const match = enText.match(/(?:Goal\s*|Output\s*)?([\w\d]+(?:\.[\w\d]+)*)/i);
+                    const parentPrefix = match ? match[1] : '';
+                    newPrefix = parentPrefix ? parentPrefix + '.1' : '1';
+                } else {
+                    // Extract sibling prefix to increment
+                    const currentPrefix = tr.dataset.prefix || '';
+                    if (currentPrefix) {
+                        newPrefix = incrementPrefix(currentPrefix);
+                    } else {
+                        newPrefix = 'X';
+                    }
+                }
+            }
 
             if (type === 'goal') {
                 targetTbody = tbodies[0];
-                const count = targetTbody.querySelectorAll('.sync-row').length + 1;
+                if (!newPrefix) {
+                    const count = targetTbody.querySelectorAll('.sync-row').length + 1;
+                    newPrefix = count.toString();
+                }
+
                 trHTML = `
-                    <tr class="sync-row" data-prefix="${count}" data-ref="${uniqueId}">
+                    <tr class="sync-row" data-prefix="${newPrefix}" data-ref="${uniqueId}">
                         <td class="editable-cell relative group" contenteditable="true">
                             ${delBtn} ${filterBtn} ${addBelowRowBtn}
-                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal ${count}:</span> New Goal</div>
-                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ ${count}:</span> ເປົ້າໝາຍໃໝ່</div>
+                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal ${newPrefix}:</span> New Goal</div>
+                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ ${newPrefix}:</span> ເປົ້າໝາຍໃໝ່</div>
                         </td>
                         <td class="bg-gray-100 relative group align-top has-list p-0">
                             <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
@@ -1349,27 +1394,31 @@
                     <tr class="blue-ribbon" data-parent-ref="${uniqueId}">
                         <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
                             ${delBtn} ${addBelowRibbonBtn}
-                            <div class="en-text">Goal ${count}: New Goal</div>
-                            <div class="lao-text">ເປົ້າໝາຍ ${count}: ເປົ້າໝາຍໃໝ່</div>
+                            <div class="en-text">Goal ${newPrefix}: New Goal</div>
+                            <div class="lao-text">ເປົ້າໝາຍ ${newPrefix}: ເປົ້າໝາຍໃໝ່</div>
                         </td>
                     </tr>
                 `;
             } else if (type === 'purpose') {
                 targetTbody = tbodies[1];
-                const count = targetTbody.querySelectorAll('.purpose-row').length + 1;
+                if (!newPrefix) {
+                    const count = targetTbody.querySelectorAll('.purpose-row').length + 1;
+                    newPrefix = count.toString();
+                }
+
                 trHTML = `
-                    <tr class="purpose-row sync-row" data-prefix="${count}" data-ref="${uniqueId}">
+                    <tr class="purpose-row sync-row" data-prefix="${newPrefix}" data-ref="${uniqueId}">
                         <td class="editable-cell relative group" contenteditable="true">
                             ${delBtn} ${filterBtn} ${addBelowRowBtn}
-                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">${count}.</span> New Purpose</div>
-                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">${count}.</span> ຈຸດປະສົງໃໝ່</div>
+                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">${newPrefix}.</span> New Purpose</div>
+                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">${newPrefix}.</span> ຈຸດປະສົງໃໝ່</div>
                         </td>
                         <td class="bg-white relative group align-top has-list p-0">
                             <div class="list-container">
                                 <div class="list-item relative group/item" contenteditable="true">
                                     ${itemDelBtn}
-                                    <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${count}.1</span> New Indicator</div>
-                                    <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${count}.1</span> ຕົວຊີ້ວັດໃໝ່</div>
+                                    <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${newPrefix}.1</span> New Indicator</div>
+                                    <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${newPrefix}.1</span> ຕົວຊີ້ວັດໃໝ່</div>
                                 </div>
                             </div>
                             ${addBtnHtmlTrue}
@@ -1387,29 +1436,33 @@
                 
                 ribbonTbody = tbodies[2];
                 ribbonHTML = `
-                    <tr class="blue-ribbon" data-parent-ref="${uniqueId}">
+                    <tr class="blue-ribbon level-3-section" data-parent-ref="${uniqueId}">
                         <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
                             ${delBtn} ${addBelowRibbonBtn}
-                            <div class="en-text">${count}. New Purpose</div>
-                            <div class="lao-text">${count}. ຈຸດປະສົງໃໝ່</div>
+                            <div class="en-text">${newPrefix}. New Purpose</div>
+                            <div class="lao-text">${newPrefix}. ຈຸດປະສົງໃໝ່</div>
                         </td>
                     </tr>
                 `;
             } else if (type === 'output') {
                 targetTbody = tbodies[2];
+                if (!newPrefix) {
+                    newPrefix = 'X.X';
+                }
+
                 trHTML = `
-                    <tr class="output-row sync-row" data-prefix="X.X" data-ref="${uniqueId}">
+                    <tr class="output-row sync-row level-3-section" data-prefix="${newPrefix}" data-ref="${uniqueId}">
                         <td class="!bg-white editable-cell relative group" contenteditable="true">
                             ${delBtn} ${filterBtn} ${addBelowRowBtn}
-                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output X.X:</span> New Output</div>
-                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ X.X:</span> ຜົນໄດ້ຮັບໃໝ່</div>
+                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output ${newPrefix}:</span> New Output</div>
+                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ ${newPrefix}:</span> ຜົນໄດ້ຮັບໃໝ່</div>
                         </td>
                         <td class="!bg-white relative group align-top has-list p-0">
                             <div class="list-container">
                                 <div class="list-item relative group/item" contenteditable="true">
                                     ${itemDelBtn}
-                                    <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">X.X.1</span> New Indicator</div>
-                                    <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">X.X.1</span> ຕົວຊີ້ວັດໃໝ່</div>
+                                    <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${newPrefix}.1</span> New Indicator</div>
+                                    <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${newPrefix}.1</span> ຕົວຊີ້ວັດໃໝ່</div>
                                 </div>
                             </div>
                             ${addBtnHtmlTrue}
@@ -1427,22 +1480,26 @@
                 
                 ribbonTbody = tbodies[3];
                 ribbonHTML = `
-                    <tr class="blue-ribbon" data-parent-ref="${uniqueId}">
+                    <tr class="blue-ribbon level-4-section" data-parent-ref="${uniqueId}">
                         <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
                             ${delBtn} ${addBelowRibbonBtn}
-                            <div class="en-text">Output X.X: New Output</div>
-                            <div class="lao-text">ຜົນໄດ້ຮັບ X.X: ຜົນໄດ້ຮັບໃໝ່</div>
+                            <div class="en-text">Output ${newPrefix}: New Output</div>
+                            <div class="lao-text">ຜົນໄດ້ຮັບ ${newPrefix}: ຜົນໄດ້ຮັບໃໝ່</div>
                         </td>
                     </tr>
                 `;
             } else if (type === 'activity') {
                 targetTbody = tbodies[3];
+                if (!newPrefix) {
+                    newPrefix = 'X.X.X';
+                }
+
                 trHTML = `
-                    <tr>
+                    <tr class="activity-row level-4-section" data-prefix="${newPrefix}" data-ref="${uniqueId}">
                         <td class="!bg-white editable-cell relative group" contenteditable="true">
                             ${delBtn} ${addBelowActBtn}
-                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act X.X.X:</span> New Activity</div>
-                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ X.X.X:</span> ກິດຈະກຳໃໝ່</div>
+                            <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act ${newPrefix}:</span> New Activity</div>
+                            <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ ${newPrefix}:</span> ກິດຈະກຳໃໝ່</div>
                         </td>
                         <td class="!bg-white editable-cell" contenteditable="true">
                             <div class="en-text">Resources</div>
@@ -1641,6 +1698,11 @@
 
             tbody.innerHTML = '';
             document.querySelectorAll('.logframe-table tr').forEach(row => {
+                const tbodies = document.querySelectorAll('.logframe-table tbody');
+                const tbodyIndex = Array.from(tbodies).indexOf(row.closest('tbody'));
+                if (tbodyIndex === 2 && currentNumLevels < 3) return;
+                if (tbodyIndex === 3 && currentNumLevels < 4) return;
+
                 const cell = row.cells[0];
                 if(!cell || !cell.classList.contains('editable-cell')) return;
                 const rawText = cell.textContent.trim();
@@ -1708,6 +1770,11 @@
             let total = 0;
             
             document.querySelectorAll('.logframe-table tr').forEach(row => {
+                const tbodies = document.querySelectorAll('.logframe-table tbody');
+                const tbodyIndex = Array.from(tbodies).indexOf(row.closest('tbody'));
+                if (tbodyIndex === 2 && currentNumLevels < 3) return;
+                if (tbodyIndex === 3 && currentNumLevels < 4) return;
+
                 const cell = row.cells[0];
                 if(!cell || !cell.classList.contains('editable-cell')) return;
                 const rawText = cell.textContent.trim();
@@ -1770,10 +1837,15 @@
             if (!text || text === '-') return;
             
             let hasNumber = text.match(/[\d\.]+/);
-            if (!hasNumber) return;
+            if (!hasNumber && type !== 'rate') return;
 
             if (type === 'pct') {
                 if (!text.includes('%')) element.innerText = text + '%';
+            } else if (type === 'rate') {
+                // Allows user to freely input formats like "1:5", "2/3" without forcing automatic symbol formatting
+                if (!text.includes(':') && !text.includes('/')) {
+                    // Do not forcefully strip or format unless necessary
+                }
             } else {
                 if (text.includes('%')) element.innerText = text.replace(/%/g, '');
             }
@@ -1916,6 +1988,11 @@
             const colspanTotal = 7 + (trackingYearCount * 2);
 
             logframeTable.querySelectorAll('tr').forEach(row => {
+                const tbodies = document.querySelectorAll('.logframe-table tbody');
+                const tbodyIndex = Array.from(tbodies).indexOf(row.closest('tbody'));
+                if (tbodyIndex === 2 && currentNumLevels < 3) return;
+                if (tbodyIndex === 3 && currentNumLevels < 4) return;
+
                 const cell = row.cells[0];
                 if (!cell || !cell.classList.contains('editable-cell')) return;
                 
@@ -1966,9 +2043,17 @@
                                 trInd.innerHTML = `
                                     <td class="px-4 py-2 border-r pl-12 text-gray-700">${visibleIndHtml}</td>
                                     <td class="px-2 py-2 border-r text-center align-middle bg-gray-50">
-                                        <select class="unit-type-selector text-xs bg-white border border-gray-300 rounded p-1 text-gray-700 outline-none focus:border-blue-400 cursor-pointer" onchange="changeUnitType(this)">
+                                        <select class="unit-type-selector text-xs bg-white border border-gray-300 rounded p-1 text-gray-700 outline-none focus:border-blue-400 cursor-pointer w-full" onchange="changeUnitType(this)">
                                             <option value="num" ${prev.unitType === 'num' ? 'selected' : ''}>#</option>
                                             <option value="pct" ${prev.unitType === 'pct' ? 'selected' : ''}>%</option>
+                                            <option value="rate" ${prev.unitType === 'rate' ? 'selected' : ''}>ອັດຕາ (:)</option>
+                                            <option value="person" ${prev.unitType === 'person' ? 'selected' : ''}>ຄົນ</option>
+                                            <option value="family" ${prev.unitType === 'family' ? 'selected' : ''}>ຄອບຄົວ</option>
+                                            <option value="village" ${prev.unitType === 'village' ? 'selected' : ''}>ບ້ານ</option>
+                                            <option value="school" ${prev.unitType === 'school' ? 'selected' : ''}>ໂຮງຮຽນ</option>
+                                            <option value="time" ${prev.unitType === 'time' ? 'selected' : ''}>ຄັ້ງ</option>
+                                            <option value="course" ${prev.unitType === 'course' ? 'selected' : ''}>ຊຸດ</option>
+                                            <option value="doc" ${prev.unitType === 'doc' ? 'selected' : ''}>ສະບັບ</option>
                                         </select>
                                     </td>
                                     <td class="px-4 py-2 border-r text-center editable-cell track-baseline format-num" contenteditable="true" onblur="formatUnit(this)">${prev.baseline}</td>
@@ -2029,6 +2114,7 @@
         window.pasteValue = pasteValue;
         window.execCmd = execCmd;
         window.switchTab = switchTab;
+        window.changeNumLevels = changeNumLevels;
         window.addItem = addItem;
         window.addLogframeRow = addLogframeRow;
         window.deleteLogframeRow = deleteLogframeRow;
@@ -2049,8 +2135,6 @@
         window.confirmExport = confirmExport;
         window.saveToCache = saveToCache;
         window.loadFromCache = loadFromCache;
-        window.closePasteModal = closePasteModal;
-        window.confirmPaste = confirmPaste;
         window.filterByGoal = filterByGoal;
         window.clearFilter = clearFilter;
 
