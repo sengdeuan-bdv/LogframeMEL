@@ -12,14 +12,14 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap');
         
         body {
-            font-family: 'Noto Sans Lao', sans-serif;
+            font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif;
             background-color: #f3f4f6;
         }
         
-        .table-container::-webkit-scrollbar { width: 8px; height: 8px; }
-        .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .table-container::-webkit-scrollbar, .planning-table-container::-webkit-scrollbar { width: 8px; height: 8px; }
+        .table-container::-webkit-scrollbar-track, .planning-table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb, .planning-table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover, .planning-table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
         .logframe-table th, .tracking-table th, .planning-table th, .budget-table th {
             background-color: #d1d5db;
@@ -32,6 +32,10 @@
             top: 0;
             z-index: 20;
         }
+        .planning-table th { z-index: 10; }
+        .planning-table th.first-row { z-index: 20; top: 0; }
+        .planning-table th.second-row { z-index: 10; top: 38px; }
+
         .logframe-table td, .tracking-table td, .planning-table td, .budget-table td {
             background-color: #f3f4f6;
             border: 1px solid #9ca3af;
@@ -112,7 +116,6 @@
                 <button onclick="saveAsJSON()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຂໍ້ມູນເປັນ JSON">
                     <i class="fas fa-file-code text-lg text-purple-600 mb-1"></i> <span data-i18n="btn-json">JSON</span>
                 </button>
-                <!-- CLOUD CACHE SAVE & RESTORE -->
                 <button onclick="saveToCache()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຊົ່ວຄາວໃນແຄສ (Cloud/Firestore) [Ctrl+Shift+V ຫຼື Ctrl+S]">
                     <i class="fas fa-cloud-upload-alt text-lg text-emerald-600 mb-1"></i> <span data-i18n="btn-quick-save">Quick Save</span>
                 </button>
@@ -145,6 +148,7 @@
                     <i class="fas fa-clipboard text-lg text-gray-600 mb-1"></i> <span data-i18n="btn-paste">Paste Value</span>
                 </button>
                 <select id="fontFamily" onchange="execCmd('fontName', this.value)" class="text-sm border border-gray-300 rounded p-1 text-gray-700 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
+                    <option value="'Phetsarath OT', sans-serif">Phetsarath OT</option>
                     <option value="'Noto Sans Lao', sans-serif">Noto Sans Lao</option>
                     <option value="Arial, sans-serif">Arial</option>
                     <option value="'Times New Roman', serif">Times New Roman</option>
@@ -305,7 +309,18 @@
         </div>
 
         <!-- LOGFRAME TAB -->
-        <div id="tab-logframe" class="tab-content w-full h-full overflow-hidden flex flex-col">
+        <div id="tab-logframe" class="tab-content w-full h-full overflow-hidden flex flex-col relative">
+            <div class="flex justify-between items-end px-4 py-3 border-b shrink-0 bg-white">
+                <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-logframe">Logframe</h2>
+                <div class="flex gap-2">
+                    <button id="btn-unhide-lf-cols" onclick="unhideColumns('lf')" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                        <i class="fas fa-columns mr-1"></i> <span data-i18n="btn-show-cols">Show Columns</span>
+                    </button>
+                    <button id="btn-unhide-lf-rows" onclick="unhideRows('lf')" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                        <i class="fas fa-eye mr-1"></i> <span data-i18n="btn-show-rows">Show Rows</span>
+                    </button>
+                </div>
+            </div>
             <div id="filter-banner" class="hidden bg-yellow-100 border-b border-yellow-300 p-2 flex justify-between items-center text-sm text-yellow-800 shadow-sm shrink-0">
                 <div class="flex items-center gap-2">
                     <i class="fas fa-filter"></i>
@@ -319,9 +334,9 @@
                 <table class="logframe-table w-full border-collapse min-w-[1000px] text-sm">
                     <colgroup>
                         <col style="width: 30%;">
-                        <col style="width: 35%;">
-                        <col style="width: 20%;">
-                        <col style="width: 15%;">
+                        <col style="width: 35%;" class="col-lf-ind">
+                        <col style="width: 20%;" class="col-lf-ver">
+                        <col style="width: 15%;" class="col-lf-asm">
                     </colgroup>
                     
                     <tbody id="tbody-goals">
@@ -332,13 +347,23 @@
                                     <button onclick="addLogframeRow('goal')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm flex items-center justify-center transition-colors text-xs font-normal" title="Add Goal"><i class="fas fa-plus mr-1"></i> ໝວດໃໝ່ (Row)</button>
                                 </div>
                             </th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-ind">
+                                <span data-i18n="th-indicators">Indicators</span>
+                                <button onclick="hideColumn('col-lf-ind')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-ver">
+                                <span data-i18n="th-verification">Verification sources</span>
+                                <button onclick="hideColumn('col-lf-ver')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-asm">
+                                <span data-i18n="th-assumptions">Assumptions</span>
+                                <button onclick="hideColumn('col-lf-asm')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
                         </tr>
                         <tr class="sync-row" data-prefix="1" data-ref="goal-1">
                             <td class="editable-cell relative group" contenteditable="true">
                                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                                     <button onclick="addLogframeRow('goal', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
                                     <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
                                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບແຖວ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
@@ -346,15 +371,15 @@
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal 1:</span> Achieve gender equality and empower all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ 1:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
-                            <td class="bg-gray-100 relative group align-top has-list p-0">
+                            <td class="bg-gray-100 relative group align-top has-list p-0 col-lf-ind">
                                 <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
                                 <button onclick="addItem(this, true)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
-                            <td class="bg-gray-100 relative group align-top has-list p-0">
+                            <td class="bg-gray-100 relative group align-top has-list p-0 col-lf-ver">
                                 <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
                                 <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
-                            <td class="bg-gray-100 relative group align-top has-list p-0">
+                            <td class="bg-gray-100 relative group align-top has-list p-0 col-lf-asm">
                                 <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
                                 <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
@@ -369,13 +394,23 @@
                                     <span data-i18n="th-purposes">Purposes</span>
                                 </div>
                             </th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-ind">
+                                <span data-i18n="th-indicators">Indicators</span>
+                                <button onclick="hideColumn('col-lf-ind')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-ver">
+                                <span data-i18n="th-verification">Verification sources</span>
+                                <button onclick="hideColumn('col-lf-ver')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-asm">
+                                <span data-i18n="th-assumptions">Assumptions</span>
+                                <button onclick="hideColumn('col-lf-asm')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
                         </tr>
                         <tr class="blue-ribbon" data-parent-ref="goal-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
                                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                                     <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" class="bg-teal-500 hover:bg-teal-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Inside (ເພີ່ມລາຍການຍ່ອຍ)"><i class="fas fa-level-down-alt text-[10px]"></i></button>
                                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
                                 </div>
@@ -386,6 +421,7 @@
                         <tr class="purpose-row sync-row" data-prefix="1.1" data-ref="purp-1-1">
                             <td class="editable-cell relative group" contenteditable="true">
                                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                                     <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
                                     <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
                                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບແຖວ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
@@ -393,7 +429,7 @@
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.1</span> End all forms of discrimination against all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.1</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
-                            <td class="bg-white relative group align-top has-list p-0">
+                            <td class="bg-white relative group align-top has-list p-0 col-lf-ind">
                                 <div class="list-container">
                                     <div class="list-item relative group/item" contenteditable="true">
                                         <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
@@ -403,11 +439,11 @@
                                 </div>
                                 <button onclick="addItem(this, true)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
-                            <td class="bg-white relative group align-top has-list p-0">
+                            <td class="bg-white relative group align-top has-list p-0 col-lf-ver">
                                 <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
                                 <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
-                            <td class="bg-white relative group align-top has-list p-0">
+                            <td class="bg-white relative group align-top has-list p-0 col-lf-asm">
                                 <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
                                 <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
@@ -422,13 +458,23 @@
                                     <span data-i18n="th-outputs">Outputs</span>
                                 </div>
                             </th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-verification">Verification sources</th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-ind">
+                                <span data-i18n="th-indicators">Indicators</span>
+                                <button onclick="hideColumn('col-lf-ind')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-ver">
+                                <span data-i18n="th-verification">Verification sources</span>
+                                <button onclick="hideColumn('col-lf-ver')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-asm">
+                                <span data-i18n="th-assumptions">Assumptions</span>
+                                <button onclick="hideColumn('col-lf-asm')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
                         </tr>
                         <tr class="blue-ribbon" data-parent-ref="purp-1-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
                                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                                     <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" class="level-3-section bg-teal-500 hover:bg-teal-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Inside (ເພີ່ມລາຍການຍ່ອຍ)"><i class="fas fa-level-down-alt text-[10px]"></i></button>
                                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
                                 </div>
@@ -439,6 +485,7 @@
                         <tr class="output-row sync-row" data-prefix="1.1.1" data-ref="out-1-1-1">
                             <td class="!bg-white editable-cell relative group" contenteditable="true">
                                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                                     <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
                                     <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
                                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບແຖວ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
@@ -446,7 +493,7 @@
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1.1:</span> Legal reviews conducted.</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
                             </td>
-                            <td class="!bg-white relative group align-top has-list p-0">
+                            <td class="!bg-white relative group align-top has-list p-0 col-lf-ind">
                                 <div class="list-container">
                                     <div class="list-item relative group/item" contenteditable="true">
                                         <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
@@ -456,7 +503,7 @@
                                 </div>
                                 <button onclick="addItem(this, true)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
-                            <td class="!bg-white relative group align-top has-list p-0">
+                            <td class="!bg-white relative group align-top has-list p-0 col-lf-ver">
                                 <div class="list-container">
                                     <div class="list-item relative group/item" contenteditable="true">
                                         <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
@@ -466,7 +513,7 @@
                                 </div>
                                 <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
-                            <td class="!bg-white relative group align-top has-list p-0">
+                            <td class="!bg-white relative group align-top has-list p-0 col-lf-asm">
                                 <div class="list-container">
                                     <div class="list-item relative group/item" contenteditable="true">
                                         <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
@@ -487,13 +534,23 @@
                                     <span data-i18n="th-activities">Activities</span>
                                 </div>
                             </th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-resources">Resources</th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-budget">Budget</th>
-                            <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-assumptions">Assumptions</th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-bg-res">
+                                <span data-i18n="th-resources">Resources</span>
+                                <button onclick="hideColumn('col-bg-res')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-bg-cost">
+                                <span data-i18n="th-budget">Budget</span>
+                                <button onclick="hideColumn('col-bg-cost')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
+                            <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-asm">
+                                <span data-i18n="th-assumptions">Assumptions</span>
+                                <button onclick="hideColumn('col-lf-asm')" class="absolute top-2 right-2 text-gray-200 hover:text-white opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-sm"></i></button>
+                            </th>
                         </tr>
                         <tr class="blue-ribbon" data-parent-ref="out-1-1-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
                                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                                     <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" class="level-4-section bg-teal-500 hover:bg-teal-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Inside (ເພີ່ມລາຍການຍ່ອຍ)"><i class="fas fa-level-down-alt text-[10px]"></i></button>
                                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
                                 </div>
@@ -504,18 +561,19 @@
                         <tr class="activity-row" data-prefix="1.1.1.1" data-ref="act-1-1-1-1">
                             <td class="!bg-white editable-cell relative group" contenteditable="true">
                                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                                     <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
                                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບແຖວ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
                                 </div>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act 1.1.1.1:</span> Hire legal consultants</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ 1.1.1.1:</span> ຈ້າງທີ່ປຶກສາດ້ານກົດໝາຍ</div>
                             </td>
-                            <td class="!bg-white editable-cell" contenteditable="true">
+                            <td class="!bg-white editable-cell col-bg-res" contenteditable="true">
                                 <div class="en-text">Legal Consultants (4 Months)</div>
                                 <div class="lao-text">ທີ່ປຶກສາກົດໝາຍ (4 ເດືອນ)</div>
                             </td>
-                            <td class="!bg-white editable-cell" contenteditable="true">10,000.00 USD</td>
-                            <td class="!bg-white editable-cell" contenteditable="true">Qualified consultants are available.</td>
+                            <td class="!bg-white editable-cell col-bg-cost" contenteditable="true">10,000.00 USD</td>
+                            <td class="!bg-white editable-cell col-lf-asm" contenteditable="true">Qualified consultants are available.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -527,30 +585,41 @@
         </div>
 
         <!-- PLANNING TAB -->
-        <div id="tab-planning" class="tab-content hidden w-full h-full p-6 overflow-y-auto">
-            <div class="flex justify-between items-end mb-4 border-b pb-2">
-                <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-planning">Planning</h2>
-                <button onclick="syncPlanningFromLogframe()" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors shadow-sm text-sm font-medium">
-                    <i class="fas fa-sync-alt mr-1"></i> <span data-i18n="btn-sync">Sync from Logframe</span>
-                </button>
+        <div id="tab-planning" class="tab-content hidden w-full h-full p-6 flex flex-col relative">
+            <div class="flex justify-between items-end mb-4 border-b pb-2 shrink-0 bg-white">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-planning">Planning</h2>
+                    <div class="flex gap-2">
+                        <button id="btn-unhide-pl-cols" onclick="unhideColumns('pl')" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                            <i class="fas fa-columns mr-1"></i> <span data-i18n="btn-show-cols">Show Columns</span>
+                        </button>
+                        <button id="btn-unhide-pl-rows" onclick="unhideRows('pl')" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                            <i class="fas fa-eye mr-1"></i> <span data-i18n="btn-show-rows">Show Rows</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded border border-gray-200 hide-on-export">
+                        <label class="text-sm font-medium text-gray-700" data-i18n="lbl-view-mode">View:</label>
+                        <select id="plan-view-mode" onchange="buildPlanningTimeline()" class="border border-gray-300 rounded p-1 text-sm outline-none bg-white cursor-pointer">
+                            <option value="monthly" data-i18n="opt-monthly">Monthly (ລາຍເດືອນ)</option>
+                            <option value="weekly" data-i18n="opt-weekly">Weekly (ລາຍອາທິດ)</option>
+                        </select>
+                        <div class="w-px h-5 bg-gray-300 mx-2"></div>
+                        <label class="text-sm font-medium text-gray-700" data-i18n="lbl-timeline-from">Timeline From:</label>
+                        <input type="month" id="plan-start-month" class="border border-gray-300 rounded p-1 text-sm outline-none bg-white cursor-pointer" value="2026-01" onchange="buildPlanningTimeline()">
+                        <label class="text-sm font-medium text-gray-700 ml-2" data-i18n="lbl-to">To:</label>
+                        <input type="month" id="plan-end-month" class="border border-gray-300 rounded p-1 text-sm outline-none bg-white cursor-pointer" value="2026-12" onchange="buildPlanningTimeline()">
+                    </div>
+                    <button onclick="syncPlanningFromLogframe()" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors shadow-sm text-sm font-medium">
+                        <i class="fas fa-sync-alt mr-1"></i> <span data-i18n="btn-sync">Sync from Logframe</span>
+                    </button>
+                </div>
             </div>
-            <div class="bg-white border rounded-lg shadow-sm overflow-hidden">
-                <table class="min-w-full text-sm text-left planning-table">
-                    <thead class="bg-blue-50 border-b">
-                        <tr>
-                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/3">Activity</th>
-                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-32 text-center" data-i18n="th-responsible">Responsible</th>
-                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center">Start</th>
-                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center">End</th>
-                            <th class="px-2 py-3 font-semibold text-gray-700 text-center" colspan="4">Q1 2026</th>
-                        </tr>
-                        <tr class="bg-gray-50 border-b text-xs text-gray-500">
-                            <th class="border-r"></th><th class="border-r"></th><th class="border-r"></th><th class="border-r"></th>
-                            <th class="px-2 py-1 border-r text-center">Jan</th>
-                            <th class="px-2 py-1 border-r text-center">Feb</th>
-                            <th class="px-2 py-1 border-r text-center">Mar</th>
-                            <th class="px-2 py-1 text-center">Apr</th>
-                        </tr>
+            <div class="planning-table-container flex-1 overflow-auto bg-white border rounded-lg shadow-sm">
+                <table class="min-w-full text-sm text-left planning-table border-collapse">
+                    <thead class="bg-blue-50">
+                        <!-- Dynamic Thead Content built by buildPlanningTimeline() -->
                     </thead>
                     <tbody class="divide-y"></tbody>
                 </table>
@@ -558,22 +627,44 @@
         </div>
 
         <!-- BUDGET TAB -->
-        <div id="tab-budget" class="tab-content hidden w-full h-full p-6 overflow-y-auto">
-            <div class="flex justify-between items-end mb-4 border-b pb-2">
-                <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-budget">Budget</h2>
+        <div id="tab-budget" class="tab-content hidden w-full h-full p-6 flex flex-col relative">
+            <div class="flex justify-between items-end mb-4 border-b pb-2 shrink-0 bg-white">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-budget">Budget</h2>
+                    <div class="flex gap-2">
+                        <button id="btn-unhide-bg-cols" onclick="unhideColumns('bg')" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                            <i class="fas fa-columns mr-1"></i> <span data-i18n="btn-show-cols">Show Columns</span>
+                        </button>
+                        <button id="btn-unhide-bg-rows" onclick="unhideRows('bg')" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                            <i class="fas fa-eye mr-1"></i> <span data-i18n="btn-show-rows">Show Rows</span>
+                        </button>
+                    </div>
+                </div>
                 <button onclick="syncBudget()" class="bg-green-50 text-green-600 border border-green-200 px-3 py-1.5 rounded hover:bg-green-100 transition-colors shadow-sm text-sm font-medium">
                     <i class="fas fa-sync-alt mr-1"></i> <span data-i18n="btn-sync">Sync from Logframe</span>
                 </button>
             </div>
-            <div class="bg-white border rounded-lg shadow-sm overflow-hidden">
+            <div class="table-container flex-1 overflow-auto bg-white border rounded-lg shadow-sm">
                 <table class="min-w-full text-sm text-left budget-table">
                     <thead class="bg-green-50 border-b">
                         <tr>
                             <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/3" data-i18n="th-activities">Activities</th>
-                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/4" data-i18n="th-resources">Resources</th>
-                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-right" data-i18n="th-unit">Unit</th>
-                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-32 text-right">Unit Cost</th>
-                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-right">Qty</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-1/4 col-bg-res group/th relative">
+                                <span data-i18n="th-resources">Resources</span>
+                                <button onclick="hideColumn('col-bg-res')" class="absolute top-2 right-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-xs drop-shadow-sm"></i></button>
+                            </th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-right col-bg-unit group/th relative">
+                                <span data-i18n="th-unit">Unit</span>
+                                <button onclick="hideColumn('col-bg-unit')" class="absolute top-2 right-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-xs drop-shadow-sm"></i></button>
+                            </th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-32 text-right col-bg-cost group/th relative">
+                                <span>Unit Cost</span>
+                                <button onclick="hideColumn('col-bg-cost')" class="absolute top-2 right-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-xs drop-shadow-sm"></i></button>
+                            </th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-24 text-right col-bg-qty group/th relative">
+                                <span>Qty</span>
+                                <button onclick="hideColumn('col-bg-qty')" class="absolute top-2 right-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-xs drop-shadow-sm"></i></button>
+                            </th>
                             <th class="px-4 py-3 font-semibold text-gray-900 w-32 text-right">Total</th>
                         </tr>
                     </thead>
@@ -589,19 +680,23 @@
         </div>
 
         <!-- TRACKING TAB -->
-        <div id="tab-tracking" class="tab-content hidden w-full h-full p-6 overflow-y-auto">
-            <div class="flex justify-between items-end mb-4 border-b pb-2">
-                <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-tracking">Indicators Tracking</h2>
+        <div id="tab-tracking" class="tab-content hidden w-full h-full p-6 flex flex-col relative">
+            <div class="flex justify-between items-end mb-4 border-b pb-2 shrink-0 bg-white">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-tracking">Indicators Tracking</h2>
+                    <div class="flex gap-2">
+                        <button onclick="unhideAllYears()" id="btn-unhide-years" class="hidden bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                            <i class="fas fa-calendar-check mr-1"></i> <span data-i18n="btn-show-years">Show Hidden Years</span>
+                        </button>
+                        <button onclick="unhideAllNotesCols()" id="btn-unhide-cols" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                            <i class="fas fa-columns mr-1"></i> <span data-i18n="btn-unhide-cols">Show Notes Cols</span>
+                        </button>
+                        <button onclick="showAllHiddenIndicators()" id="btn-show-all-hidden" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                            <i class="fas fa-eye mr-1"></i> <span data-i18n="btn-show-hidden">Show Hidden</span>
+                        </button>
+                    </div>
+                </div>
                 <div class="flex gap-2">
-                    <button onclick="unhideAllYears()" id="btn-unhide-years" class="hidden bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
-                        <i class="fas fa-calendar-check mr-1"></i> <span data-i18n="btn-show-years">Show Hidden Years</span>
-                    </button>
-                    <button onclick="unhideAllNotesCols()" id="btn-unhide-cols" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
-                        <i class="fas fa-columns mr-1"></i> <span data-i18n="btn-unhide-cols">Show Notes Cols</span>
-                    </button>
-                    <button onclick="showAllHiddenIndicators()" id="btn-show-all-hidden" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
-                        <i class="fas fa-eye mr-1"></i> <span data-i18n="btn-show-hidden">Show Hidden</span>
-                    </button>
                     <button onclick="toggleArchivedTracking()" id="btn-toggle-archived" class="bg-gray-100 text-gray-600 border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors shadow-sm text-sm font-medium">
                         <i class="fas fa-eye-slash mr-1"></i> <span data-i18n="btn-toggle-archive">Hide Archived</span>
                     </button>
@@ -613,7 +708,7 @@
                     </button>
                 </div>
             </div>
-            <div class="bg-white border rounded-lg shadow-sm overflow-hidden overflow-x-auto">
+            <div class="table-container flex-1 overflow-auto bg-white border rounded-lg shadow-sm">
                 <table class="min-w-full text-sm text-left tracking-table">
                     <thead class="bg-purple-50 border-b">
                         <tr>
@@ -691,11 +786,16 @@
                 'th-goals': 'Goals', 'th-purposes': 'Purposes', 'th-outputs': 'Outputs', 'th-activities': 'Activities',
                 'th-indicators': 'Indicators', 'th-verification': 'Verification sources', 'th-assumptions': 'Assumptions',
                 'th-resources': 'Resources', 'th-budget': 'Budget', 'th-responsible': 'Responsible',
-                'th-hierarchy': 'Hierarchy / Indicator', 'th-baseline': 'Baseline', 'th-target': 'Target', 'th-actual': 'Actual Progress', 'th-progress': 'Progress (%)', 'th-status': 'Status / Notes',
+                'th-hierarchy': 'Hierarchy / Indicator', 'th-baseline': 'Baseline', 'th-target': 'Target', 'th-actual': 'Actual Progress', 'th-progress': 'Progress (%)', 'th-status': 'Status',
                 'th-target-overall': 'Overall Target', 'th-actual-overall': 'Overall Actual',
                 'th-target-small': 'Target', 'th-actual-small': 'Actual',
                 'th-yearly-notes': 'Yearly Notes',
                 'th-unit': 'Unit',
+                'lbl-view-mode': 'View:',
+                'opt-monthly': 'Monthly',
+                'opt-weekly': 'Weekly',
+                'lbl-timeline-from': 'Timeline From:', 'lbl-to': 'To:',
+                'opt-pending': 'Not Started', 'opt-progress': 'In Progress', 'opt-completed': 'Completed', 'opt-delayed': 'Delayed',
                 'lbl-export-options': 'Export Options',
                 'desc-export-options': 'Select how you want to export the data:',
                 'btn-export-pdf': 'Export as PDF', 'desc-export-pdf': 'Download viewable document',
@@ -718,7 +818,9 @@
                 'btn-show-archive': 'Show All Indicators',
                 'btn-show-hidden': 'Unhide All',
                 'btn-unhide-cols': 'Show Notes Columns',
-                'btn-show-years': 'Show Hidden Years'
+                'btn-show-years': 'Show Hidden Years',
+                'btn-show-cols': 'Show Hidden Columns',
+                'btn-show-rows': 'Show Hidden Rows'
             },
             'lo': {
                 'menu-project': 'ໂຄງການ',
@@ -734,11 +836,16 @@
                 'th-goals': 'ເປົ້າໝາຍ (Goals)', 'th-purposes': 'ຈຸດປະສົງ (Purposes)', 'th-outputs': 'ຜົນໄດ້ຮັບ (Outputs)', 'th-activities': 'ກິດຈະກຳ (Activities)',
                 'th-indicators': 'ຕົວຊີ້ວັດ (Indicators)', 'th-verification': 'ແຫຼ່ງຢັ້ງຢືນ (Verification)', 'th-assumptions': 'ຂໍ້ສົມມຸດຕິຖານ (Assumptions)',
                 'th-resources': 'ຊັບພະຍາກອນ (Resources)', 'th-budget': 'ງົບປະມານ (Budget)', 'th-responsible': 'ຜູ້ຮັບຜິດຊອບ',
-                'th-hierarchy': 'ໂຄງສ້າງ / ຕົວຊີ້ວັດ', 'th-baseline': 'ຄ່າພື້ນຖານ', 'th-target': 'ເປົ້າໝາຍ', 'th-actual': 'ຜົນຕົວຈິງ', 'th-progress': 'ຄວາມຄືບໜ້າ', 'th-status': 'ສະຖານະ/ໝາຍເຫດ',
+                'th-hierarchy': 'ໂຄງສ້າງ / ຕົວຊີ້ວັດ', 'th-baseline': 'ຄ່າພື້ນຖານ', 'th-target': 'ເປົ້າໝາຍ', 'th-actual': 'ຜົນຕົວຈິງ', 'th-progress': 'ຄວາມຄືບໜ້າ', 'th-status': 'ສະຖານະ',
                 'th-target-overall': 'ເປົ້າໝາຍລວມ', 'th-actual-overall': 'ຜົນລວມຕົວຈິງ',
                 'th-target-small': 'ເປົ້າໝາຍ', 'th-actual-small': 'ຜົນຕົວຈິງ',
                 'th-yearly-notes': 'ບັນທຶກເຫດຜົນ',
                 'th-unit': 'ຫົວໜ່ວຍ',
+                'lbl-view-mode': 'ຮູບແບບ:',
+                'opt-monthly': 'ລາຍເດືອນ',
+                'opt-weekly': 'ລາຍອາທິດ',
+                'lbl-timeline-from': 'ໄລຍະເວລາ ຈາກ:', 'lbl-to': 'ຫາ:',
+                'opt-pending': 'ຍັງບໍ່ເລີ່ມ', 'opt-progress': 'ພວມຈັດຕັ້ງປະຕິບັດ', 'opt-completed': 'ສຳເລັດ', 'opt-delayed': 'ລ່າຊ້າ',
                 'lbl-export-options': 'ຕົວເລືອກການສົ່ງອອກ',
                 'desc-export-options': 'ກະລຸນາເລືອກຮູບແບບທີ່ທ່ານຕ້ອງການສົ່ງອອກ:',
                 'btn-export-pdf': 'ສົ່ງອອກເປັນ PDF', 'desc-export-pdf': 'ດາວໂຫຼດໄຟລ໌ PDF',
@@ -761,13 +868,17 @@
                 'btn-show-archive': 'ສະແດງຕົວຊີ້ວັດທັງໝົດ',
                 'btn-show-hidden': 'ສະແດງໂຕທີ່ຊ່ອນ',
                 'btn-unhide-cols': 'ສະແດງຖັນບັນທຶກ',
-                'btn-show-years': 'ສະແດງປີທີ່ຊ່ອນ'
+                'btn-show-years': 'ສະແດງປີທີ່ຊ່ອນ',
+                'btn-show-cols': 'ສະແດງຖັນທີ່ຊ່ອນ',
+                'btn-show-rows': 'ສະແດງແຖວທີ່ຊ່ອນ'
             }
         };
 
         let currentLang = 'lo';
         let trackingYearCount = 0;
         let currentNumLevels = 4;
+        let planColumns = []; // Renamed from planMonths to planColumns to support both weeks and months
+        let currentPlanViewMode = 'monthly'; // 'monthly' or 'weekly'
 
         // -----------------------------------------------------------------
         // Firebase Cloud Cache Setup
@@ -867,6 +978,9 @@
                     trackingYearCount: trackingYearCount,
                     numLevels: currentNumLevels,
                     customHeaders: customHeaders,
+                    planStartMonth: document.getElementById('plan-start-month')?.value || '2026-01',
+                    planEndMonth: document.getElementById('plan-end-month')?.value || '2026-12',
+                    planViewMode: document.getElementById('plan-view-mode')?.value || 'monthly',
                     updatedAt: new Date().toISOString()
                 }));
 
@@ -907,6 +1021,10 @@
                         document.getElementById('num-levels-select').value = data.numLevels;
                         changeNumLevels(data.numLevels);
                     }
+                    
+                    if (data.planStartMonth !== undefined) document.getElementById('plan-start-month').value = data.planStartMonth;
+                    if (data.planEndMonth !== undefined) document.getElementById('plan-end-month').value = data.planEndMonth;
+                    if (data.planViewMode !== undefined) document.getElementById('plan-view-mode').value = data.planViewMode;
 
                     if (data.customHeaders) {
                         document.getElementById('set-goal-en').value = data.customHeaders.en['th-goals'];
@@ -924,6 +1042,7 @@
                     }
 
                     setLanguage(currentLang);
+                    buildPlanningTimeline(); // Rebuild timeline & sync from logframe
                     showToast("ດຶງຂໍ້ມູນຫຼ້າສຸດຈາກແຄສ Cloud ສຳເລັດ!", "success");
                 } else {
                     if (manualTrigger) {
@@ -982,6 +1101,17 @@
                 const editableDiv = th.querySelector('.editable-cell');
                 if(editableDiv) editableDiv.innerText = mainText;
             });
+            
+            // Re-render planning status dropdowns if needed to reflect language
+            document.querySelectorAll('.plan-status').forEach(select => {
+                const val = select.value;
+                select.innerHTML = `
+                    <option value="pending" ${val === 'pending' ? 'selected' : ''}>${dict[lang]['opt-pending'] || dict['en']['opt-pending']}</option>
+                    <option value="progress" ${val === 'progress' ? 'selected' : ''}>${dict[lang]['opt-progress'] || dict['en']['opt-progress']}</option>
+                    <option value="completed" ${val === 'completed' ? 'selected' : ''}>${dict[lang]['opt-completed'] || dict['en']['opt-completed']}</option>
+                    <option value="delayed" ${val === 'delayed' ? 'selected' : ''}>${dict[lang]['opt-delayed'] || dict['en']['opt-delayed']}</option>
+                `;
+            });
         }
 
         function updateCustomHeader(lang, key, value) {
@@ -1023,6 +1153,49 @@
         }
 
         // -----------------------------------------------------------------
+        // Generic Hide/Unhide Functions for Rows and Columns
+        // -----------------------------------------------------------------
+        function hideColumn(colClass) {
+            document.querySelectorAll(`.${colClass}`).forEach(el => el.classList.add('hidden'));
+            
+            // Show the respective unhide button based on the active tab
+            const activeTab = document.querySelector('.tab-content:not(.hidden)').id;
+            if(activeTab === 'tab-logframe') document.getElementById('btn-unhide-lf-cols').classList.remove('hidden');
+            if(activeTab === 'tab-planning') document.getElementById('btn-unhide-pl-cols').classList.remove('hidden');
+            if(activeTab === 'tab-budget') document.getElementById('btn-unhide-bg-cols').classList.remove('hidden');
+        }
+
+        function unhideColumns(tabPrefix) {
+            if(tabPrefix === 'lf') {
+                document.querySelectorAll('.col-lf-ind, .col-lf-ver, .col-lf-asm').forEach(el => el.classList.remove('hidden'));
+                document.getElementById('btn-unhide-lf-cols').classList.add('hidden');
+            } else if(tabPrefix === 'pl') {
+                document.querySelectorAll('.col-pl-resp, .col-pl-start, .col-pl-end, .col-pl-status').forEach(el => el.classList.remove('hidden'));
+                document.getElementById('btn-unhide-pl-cols').classList.add('hidden');
+            } else if(tabPrefix === 'bg') {
+                document.querySelectorAll('.col-bg-res, .col-bg-unit, .col-bg-cost, .col-bg-qty').forEach(el => el.classList.remove('hidden'));
+                document.getElementById('btn-unhide-bg-cols').classList.add('hidden');
+            }
+        }
+
+        function hideRow(btn) {
+            const tr = btn.closest('tr');
+            tr.classList.add('user-hidden');
+            
+            const activeTab = document.querySelector('.tab-content:not(.hidden)').id;
+            if(activeTab === 'tab-logframe') document.getElementById('btn-unhide-lf-rows').classList.remove('hidden');
+            if(activeTab === 'tab-planning') document.getElementById('btn-unhide-pl-rows').classList.remove('hidden');
+            if(activeTab === 'tab-budget') document.getElementById('btn-unhide-bg-rows').classList.remove('hidden');
+        }
+
+        function unhideRows(tabPrefix) {
+            const activeTabId = tabPrefix === 'lf' ? 'tab-logframe' : (tabPrefix === 'pl' ? 'tab-planning' : 'tab-budget');
+            const activeTab = document.getElementById(activeTabId);
+            activeTab.querySelectorAll('.user-hidden').forEach(el => el.classList.remove('user-hidden'));
+            document.getElementById(`btn-unhide-${tabPrefix}-rows`).classList.add('hidden');
+        }
+
+        // -----------------------------------------------------------------
         // Export Functions
         // -----------------------------------------------------------------
         let pendingExportType = '';
@@ -1059,7 +1232,7 @@
             document.body.classList.add('exporting'); // Hides UI elements safely
             
             // Try to find the inner container or use the tab itself
-            const containerToExport = activeTab.querySelector('.table-container') || activeTab.querySelector('.bg-white.border.rounded-lg') || activeTab;
+            const containerToExport = activeTab.querySelector('.table-container') || activeTab.querySelector('.planning-table-container') || activeTab.querySelector('.bg-white.border.rounded-lg') || activeTab;
             
             const opt = {
                 margin:       0.3,
@@ -1114,7 +1287,10 @@
                 trackingHTML: document.querySelector('.tracking-table') ? document.querySelector('.tracking-table').innerHTML : '',
                 trackingYearCount: trackingYearCount,
                 numLevels: currentNumLevels,
-                customHeaders: customHeaders
+                customHeaders: customHeaders,
+                planStartMonth: document.getElementById('plan-start-month')?.value || '2026-01',
+                planEndMonth: document.getElementById('plan-end-month')?.value || '2026-12',
+                planViewMode: document.getElementById('plan-view-mode')?.value || 'monthly'
             };
             const jsonString = JSON.stringify(data, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
@@ -1149,6 +1325,10 @@
                         document.getElementById('num-levels-select').value = data.numLevels;
                         changeNumLevels(data.numLevels);
                     }
+                    
+                    if (data.planStartMonth !== undefined) document.getElementById('plan-start-month').value = data.planStartMonth;
+                    if (data.planEndMonth !== undefined) document.getElementById('plan-end-month').value = data.planEndMonth;
+                    if (data.planViewMode !== undefined) document.getElementById('plan-view-mode').value = data.planViewMode;
 
                     if (data.customHeaders) {
                         document.getElementById('set-goal-en').value = data.customHeaders.en['th-goals'];
@@ -1166,6 +1346,7 @@
                     }
 
                     setLanguage(currentLang);
+                    buildPlanningTimeline();
                     showToast("ນຳເຂົ້າຂໍ້ມູນ JSON ສຳເລັດແລ້ວ!", "success");
                 } catch (err) {
                     showToast("ເກີດຂໍ້ຜິດພາດໃນການອ່ານໄຟລ໌ JSON", "error");
@@ -1184,7 +1365,7 @@
             tableClone.querySelectorAll('.add-btn').forEach(btn => btn.remove());
             tableClone.querySelectorAll('.hide-on-export').forEach(btn => btn.remove());
             
-            tableClone.querySelectorAll('tr.hidden').forEach(tr => tr.remove());
+            tableClone.querySelectorAll('tr.hidden, tr.user-hidden, th.hidden, td.hidden').forEach(el => el.remove());
             
             if (currentNumLevels < 3) tableClone.querySelectorAll('.level-3-section').forEach(el => el.remove());
             if (currentNumLevels < 4) tableClone.querySelectorAll('.level-4-section').forEach(el => el.remove());
@@ -1251,9 +1432,9 @@
         function exportWord(mode) {
             let style = "";
             if (mode === 'format') {
-                style = "<style>table { border-collapse: collapse; width: 100%; font-family: 'Noto Sans Lao', sans-serif; font-size: 11pt; } th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; } th { background-color: #d1d5db; } tr.blue-ribbon td { background-color: #93c5fd; font-weight: bold; } .lao-text{ color: #4b5563; font-size: 0.95em;}</style>";
+                style = "<style>table { border-collapse: collapse; width: 100%; font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif; font-size: 11pt; } th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; } th { background-color: #d1d5db; } tr.blue-ribbon td { background-color: #93c5fd; font-weight: bold; } .lao-text{ color: #4b5563; font-size: 0.95em;}</style>";
             } else {
-                style = "<style>table { border-collapse: collapse; width: 100%; font-family: 'Noto Sans Lao', sans-serif; font-size: 11pt; } th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; } .lao-text{ font-size: 0.95em; }</style>";
+                style = "<style>table { border-collapse: collapse; width: 100%; font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif; font-size: 11pt; } th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; } .lao-text{ font-size: 0.95em; }</style>";
             }
 
             const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export</title>" + style + "</head><body>";
@@ -1326,7 +1507,7 @@
             }
 
             if (tabId === 'dashboard') syncDashboard();
-            if (tabId === 'planning') syncPlanningFromLogframe();
+            if (tabId === 'planning') syncPlanningFromLogframe(); // Gantt update logic added here
             if (tabId === 'budget') syncBudget();
             if (tabId === 'tracking') syncTracking();
         }
@@ -1347,6 +1528,7 @@
             
             if (budgetTbody) {
                 budgetTbody.querySelectorAll('tr').forEach(tr => {
+                    if (tr.classList.contains('user-hidden')) return; // Ignore hidden rows in stats
                     const actName = tr.cells[0]?.textContent.trim().split(':')[0] || 'Unknown';
                     const actTotal = parseFloat(tr.cells[5]?.textContent.replace(/,/g, '')) || 0;
                     if (actTotal > 0) {
@@ -1370,6 +1552,7 @@
 
             if (trackingTbody) {
                 trackingTbody.querySelectorAll('tr.indicator-row-track').forEach(tr => {
+                    if (tr.classList.contains('user-hidden') || tr.classList.contains('is-cancelled')) return;
                     const indName = tr.cells[0]?.textContent.trim() || 'Ind';
                     const progText = tr.querySelector('.track-progress')?.innerText || '0';
                     const progVal = parseFloat(progText.replace('%','')) || 0;
@@ -1432,31 +1615,55 @@
             let maxItems = 0;
             lists.forEach(list => maxItems = Math.max(maxItems, list.querySelectorAll('.list-item').length));
 
+            // Create elements (DOM writes)
             lists.forEach(list => {
-                const isIndicatorList = list.closest('td').cellIndex === 1;
+                const isIndicatorList = list.closest('td').classList.contains('col-lf-ind');
                 const items = list.querySelectorAll('.list-item');
                 const diff = maxItems - items.length;
-                for (let i = 0; i < diff; i++) {
-                    const newItem = document.createElement('div');
-                    newItem.className = 'list-item relative group/item';
-                    newItem.contentEditable = "true";
-                    
-                    let prefixHtml = '';
-                    if (isIndicatorList && tr.dataset.prefix) {
-                        const count = list.querySelectorAll('.list-item').length;
-                        prefixHtml = `<span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${tr.dataset.prefix}.${count + 1}</span> `;
+                
+                if (diff > 0) {
+                    const frag = document.createDocumentFragment();
+                    for (let i = 0; i < diff; i++) {
+                        const newItem = document.createElement('div');
+                        newItem.className = 'list-item relative group/item';
+                        newItem.contentEditable = "true";
+                        
+                        let prefixHtml = '';
+                        if (isIndicatorList && tr.dataset.prefix) {
+                            const count = items.length + i;
+                            prefixHtml = `<span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${tr.dataset.prefix}.${count + 1}</span> `;
+                        }
+                        const delBtnHtml = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
+                        newItem.innerHTML = `${delBtnHtml}<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
+                        frag.appendChild(newItem);
                     }
-                    const delBtnHtml = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
-                    newItem.innerHTML = `${delBtnHtml}<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
-                    list.appendChild(newItem);
+                    list.appendChild(frag);
                 }
             });
 
+            // Optimize Layout Thrashing: Batch Read then Batch Write
+            const heightsMatrix = [];
             for (let i = 0; i < maxItems; i++) {
-                let maxHeight = 0;
-                lists.forEach(list => { const item = list.querySelectorAll('.list-item')[i]; if (item) item.style.height = 'auto'; });
-                lists.forEach(list => { const item = list.querySelectorAll('.list-item')[i]; if (item) maxHeight = Math.max(maxHeight, item.offsetHeight); });
-                lists.forEach(list => { const item = list.querySelectorAll('.list-item')[i]; if (item) item.style.height = maxHeight + 'px'; });
+                lists.forEach(list => { 
+                    const item = list.querySelectorAll('.list-item')[i]; 
+                    if (item) item.style.height = 'auto'; // Write before read
+                });
+                
+                let rowHeights = [];
+                lists.forEach(list => { 
+                    const item = list.querySelectorAll('.list-item')[i]; 
+                    if (item) rowHeights.push(item.offsetHeight); // Batch Read
+                });
+                heightsMatrix.push(Math.max(...rowHeights, 45)); // 45 is min-height
+            }
+
+            // Batch Write
+            for (let i = 0; i < maxItems; i++) {
+                const maxHeight = heightsMatrix[i];
+                lists.forEach(list => { 
+                    const item = list.querySelectorAll('.list-item')[i]; 
+                    if (item) item.style.height = maxHeight + 'px'; 
+                });
             }
         }
 
@@ -1494,7 +1701,7 @@
                 
                 const prefix = tr.dataset.prefix;
                 if (prefix) {
-                    const indCell = tr.cells[1];
+                    const indCell = tr.querySelector('.col-lf-ind');
                     if (indCell) {
                         const listItems = indCell.querySelectorAll('.list-item');
                         listItems.forEach((item, idx) => {
@@ -1576,6 +1783,7 @@
 
             const rowActionsHtmlGoal = `
                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                     <button onclick="addLogframeRow('goal', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
                     <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
@@ -1583,6 +1791,7 @@
             `;
             const rowActionsHtmlPurpose = `
                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                     <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
                     <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
@@ -1590,6 +1799,7 @@
             `;
             const rowActionsHtmlOutput = `
                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                     <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
                     <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
@@ -1597,12 +1807,14 @@
             `;
             const rowActionsHtmlActivity = `
                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                     <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
                 </div>
             `;
             const ribbonActionsHtml = `
                 <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="hideRow(this)" onmousedown="event.stopPropagation();" class="bg-gray-400 hover:bg-gray-500 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Hide Row (ຊ່ອນແຖວ)"><i class="fas fa-eye-slash text-[10px]"></i></button>
                     <button onclick="addLogframeRow('${ribbonAddType}', this)" onmousedown="event.stopPropagation();" class="level-${ribbonAddType === 'purpose' ? '2' : (ribbonAddType === 'output' ? '3' : '4')}-section bg-teal-500 hover:bg-teal-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Inside (ເພີ່ມລາຍການຍ່ອຍ)"><i class="fas fa-level-down-alt text-[10px]"></i></button>
                     <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
                 </div>
@@ -1643,15 +1855,15 @@
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal ${newPrefix}:</span> New Goal</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ ${newPrefix}:</span> ເປົ້າໝາຍໃໝ່</div>
                         </td>
-                        <td class="bg-gray-100 relative group align-top has-list p-0">
+                        <td class="bg-gray-100 relative group align-top has-list p-0 col-lf-ind">
                             <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtmlTrue}
                         </td>
-                        <td class="bg-gray-100 relative group align-top has-list p-0">
+                        <td class="bg-gray-100 relative group align-top has-list p-0 col-lf-ver">
                             <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
-                        <td class="bg-gray-100 relative group align-top has-list p-0">
+                        <td class="bg-gray-100 relative group align-top has-list p-0 col-lf-asm">
                             <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
@@ -1682,7 +1894,7 @@
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">${newPrefix}.</span> New Purpose</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">${newPrefix}.</span> ຈຸດປະສົງໃໝ່</div>
                         </td>
-                        <td class="bg-white relative group align-top has-list p-0">
+                        <td class="bg-white relative group align-top has-list p-0 col-lf-ind">
                             <div class="list-container">
                                 <div class="list-item relative group/item" contenteditable="true">
                                     ${itemDelBtn}
@@ -1692,11 +1904,11 @@
                             </div>
                             ${addBtnHtmlTrue}
                         </td>
-                        <td class="bg-white relative group align-top has-list p-0">
+                        <td class="bg-white relative group align-top has-list p-0 col-lf-ver">
                             <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
-                        <td class="bg-white relative group align-top has-list p-0">
+                        <td class="bg-white relative group align-top has-list p-0 col-lf-asm">
                             <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
@@ -1726,7 +1938,7 @@
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output ${newPrefix}:</span> New Output</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ ${newPrefix}:</span> ຜົນໄດ້ຮັບໃໝ່</div>
                         </td>
-                        <td class="!bg-white relative group align-top has-list p-0">
+                        <td class="!bg-white relative group align-top has-list p-0 col-lf-ind">
                             <div class="list-container">
                                 <div class="list-item relative group/item" contenteditable="true">
                                     ${itemDelBtn}
@@ -1736,11 +1948,11 @@
                             </div>
                             ${addBtnHtmlTrue}
                         </td>
-                        <td class="!bg-white relative group align-top has-list p-0">
+                        <td class="!bg-white relative group align-top has-list p-0 col-lf-ver">
                             <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
-                        <td class="!bg-white relative group align-top has-list p-0">
+                        <td class="!bg-white relative group align-top has-list p-0 col-lf-asm">
                             <div class="list-container"><div class="list-item relative group/item" contenteditable="true">${itemDelBtn}<div class="en-text"></div><div class="lao-text"></div></div></div>
                             ${addBtnHtml}
                         </td>
@@ -1770,12 +1982,12 @@
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act ${newPrefix}:</span> New Activity</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ ${newPrefix}:</span> ກິດຈະກຳໃໝ່</div>
                         </td>
-                        <td class="!bg-white editable-cell" contenteditable="true">
+                        <td class="!bg-white editable-cell col-bg-res" contenteditable="true">
                             <div class="en-text">Resources</div>
                             <div class="lao-text">ຊັບພະຍາກອນ</div>
                         </td>
-                        <td class="!bg-white editable-cell" contenteditable="true">0.00 USD</td>
-                        <td class="!bg-white editable-cell" contenteditable="true"></td>
+                        <td class="!bg-white editable-cell col-bg-cost" contenteditable="true">0.00 USD</td>
+                        <td class="!bg-white editable-cell col-lf-asm" contenteditable="true"></td>
                     </tr>
                 `;
             }
@@ -1865,7 +2077,7 @@
                         }
 
                         if (row.dataset.prefix !== baseNumber) {
-                            const indCell = row.cells[1];
+                            const indCell = row.querySelector('.col-lf-ind');
                             if (indCell) {
                                 const listItems = indCell.querySelectorAll('.list-item');
                                 listItems.forEach((item, index) => {
@@ -1949,9 +2161,191 @@
             });
         }
 
+        // --- Planning Gantt Logic ---
+        
+        // Helper function to get weeks in a month
+        function getWeeksInMonth(year, month) {
+            const weeks = [];
+            const firstDate = new Date(year, month - 1, 1);
+            const lastDate = new Date(year, month, 0);
+            
+            let currentWeekStart = new Date(firstDate);
+            // Adjust to Monday if first day is not Monday
+            const dayOfWeek = currentWeekStart.getDay();
+            const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            currentWeekStart.setDate(currentWeekStart.getDate() + offsetToMonday);
+
+            let weekNum = 1;
+            while (currentWeekStart <= lastDate) {
+                let weekEnd = new Date(currentWeekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                
+                // Cap weekEnd to the last day of the month if it spills over
+                let actualWeekEnd = new Date(weekEnd);
+                if (actualWeekEnd > lastDate) actualWeekEnd = new Date(lastDate);
+                
+                // Cap weekStart to first day of the month if it started before
+                let actualWeekStart = new Date(currentWeekStart);
+                if (actualWeekStart < firstDate) actualWeekStart = new Date(firstDate);
+
+                weeks.push({
+                    weekNum: weekNum,
+                    start: actualWeekStart,
+                    end: actualWeekEnd,
+                    label: `W${weekNum}`
+                });
+                
+                currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+                weekNum++;
+            }
+            return weeks;
+        }
+
+        function buildPlanningTimeline() {
+            const startVal = document.getElementById('plan-start-month').value || '2026-01';
+            const endVal = document.getElementById('plan-end-month').value || '2026-12';
+            currentPlanViewMode = document.getElementById('plan-view-mode').value || 'monthly';
+
+            const startDt = new Date(startVal + '-01');
+            const endDt = new Date(endVal + '-01');
+
+            if (endDt < startDt) {
+                showToast("ວັນທີສິ້ນສຸດ ຕ້ອງຫຼາຍກວ່າ ວັນທີເລີ່ມຕົ້ນ", "error");
+                return;
+            }
+
+            planColumns = [];
+            let curr = new Date(startDt);
+            
+            let headerTopHtml = '';
+            let headerBottomHtml = '';
+            let currentYear = startDt.getFullYear();
+            let yearColspan = 0;
+            
+            if (currentPlanViewMode === 'monthly') {
+                while (curr <= endDt) {
+                    planColumns.push({
+                        type: 'month',
+                        year: curr.getFullYear(),
+                        month: curr.getMonth() + 1, 
+                        label: curr.toLocaleString('en-US', { month: 'short' }),
+                        start: new Date(curr.getFullYear(), curr.getMonth(), 1),
+                        end: new Date(curr.getFullYear(), curr.getMonth() + 1, 0)
+                    });
+                    curr.setMonth(curr.getMonth() + 1);
+                }
+
+                if (planColumns.length > 60) {
+                    showToast("ໄລຍະເວລາຫຼາຍເກີນໄປ (ຈຳກັດສູງສຸດ 5 ປີ)", "error");
+                    planColumns = planColumns.slice(0, 60);
+                }
+
+                planColumns.forEach((col) => {
+                    if (col.year !== currentYear) {
+                        headerTopHtml += `<th class="px-2 py-2 font-semibold text-gray-700 text-center border-b border-r border-blue-200 min-w-[35px] first-row" colspan="${yearColspan}">${currentYear}</th>`;
+                        currentYear = col.year;
+                        yearColspan = 1;
+                    } else {
+                        yearColspan++;
+                    }
+                    headerBottomHtml += `<th class="px-1 py-1 border-r text-center font-medium text-[11px] min-w-[35px] second-row" title="${col.label} ${col.year}">${col.label}</th>`;
+                });
+                
+                if (yearColspan > 0) {
+                    headerTopHtml += `<th class="px-2 py-2 font-semibold text-gray-700 text-center border-b border-r border-blue-200 min-w-[35px] first-row" colspan="${yearColspan}">${currentYear}</th>`;
+                }
+                
+            } else if (currentPlanViewMode === 'weekly') {
+                let currentMonthKey = '';
+                let monthColspan = 0;
+                
+                while (curr <= endDt) {
+                    const year = curr.getFullYear();
+                    const month = curr.getMonth() + 1;
+                    const monthLabel = curr.toLocaleString('en-US', { month: 'short' });
+                    
+                    const weeks = getWeeksInMonth(year, month);
+                    
+                    weeks.forEach(w => {
+                        planColumns.push({
+                            type: 'week',
+                            year: year,
+                            month: month,
+                            monthLabel: monthLabel,
+                            weekNum: w.weekNum,
+                            label: w.label,
+                            start: w.start,
+                            end: w.end
+                        });
+                    });
+                    curr.setMonth(curr.getMonth() + 1);
+                }
+                
+                if (planColumns.length > 150) {
+                    showToast("ໄລຍະເວລາຫຼາຍເກີນໄປ ສຳລັບເບິ່ງລາຍອາທິດ", "error");
+                    planColumns = planColumns.slice(0, 150);
+                }
+
+                planColumns.forEach((col) => {
+                    const mKey = `${col.monthLabel} ${col.year}`;
+                    if (mKey !== currentMonthKey) {
+                        if (currentMonthKey !== '') {
+                             headerTopHtml += `<th class="px-2 py-2 font-semibold text-gray-700 text-center border-b border-r border-blue-200 min-w-[40px] first-row" colspan="${monthColspan}">${currentMonthKey}</th>`;
+                        }
+                        currentMonthKey = mKey;
+                        monthColspan = 1;
+                    } else {
+                        monthColspan++;
+                    }
+                    headerBottomHtml += `<th class="px-1 py-1 border-r text-center font-medium text-[10px] min-w-[28px] second-row" title="${col.start.toLocaleDateString()} - ${col.end.toLocaleDateString()}">${col.label}</th>`;
+                });
+                
+                if (monthColspan > 0) {
+                    headerTopHtml += `<th class="px-2 py-2 font-semibold text-gray-700 text-center border-b border-r border-blue-200 min-w-[40px] first-row" colspan="${monthColspan}">${currentMonthKey}</th>`;
+                }
+            }
+
+            const statusLabel = dict[currentLang]['th-status'] || 'Status';
+            const respLabel = dict[currentLang]['th-responsible'] || 'Responsible';
+            
+            const thead = document.querySelector('.planning-table thead');
+            thead.innerHTML = `
+                <tr>
+                    <th class="px-4 py-3 font-semibold text-gray-700 border-r min-w-[250px] w-[35%] first-row" rowspan="2">Activity / ກິດຈະກຳ</th>
+                    <th class="px-2 py-3 font-semibold text-gray-700 border-r w-24 text-center first-row col-pl-resp group/th relative" rowspan="2">
+                        <span data-i18n="th-responsible">${respLabel}</span>
+                        <button onclick="hideColumn('col-pl-resp')" class="absolute top-1 right-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-[10px]"></i></button>
+                    </th>
+                    <th class="px-2 py-3 font-semibold text-gray-700 border-r w-24 text-center first-row col-pl-start group/th relative" rowspan="2">
+                        Start
+                        <button onclick="hideColumn('col-pl-start')" class="absolute top-1 right-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-[10px]"></i></button>
+                    </th>
+                    <th class="px-2 py-3 font-semibold text-gray-700 border-r w-24 text-center first-row col-pl-end group/th relative" rowspan="2">
+                        End
+                        <button onclick="hideColumn('col-pl-end')" class="absolute top-1 right-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-[10px]"></i></button>
+                    </th>
+                    <th class="px-2 py-3 font-semibold text-gray-700 border-r w-[80px] text-center first-row col-pl-status group/th relative" rowspan="2">
+                        <span data-i18n="th-status">${statusLabel}</span>
+                        <button onclick="hideColumn('col-pl-status')" class="absolute top-1 right-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover/th:opacity-100 transition-opacity cursor-pointer hide-on-export"><i class="fas fa-eye-slash text-[10px]"></i></button>
+                    </th>
+                    ${headerTopHtml}
+                </tr>
+                <tr class="bg-gray-50 text-gray-500">
+                    ${headerBottomHtml}
+                </tr>
+            `;
+
+            syncPlanningFromLogframe();
+        }
+
         function syncPlanningFromLogframe() {
             const tbody = document.querySelector('.planning-table tbody');
             if (!tbody) return;
+            
+            if (planColumns.length === 0) {
+                buildPlanningTimeline();
+                return;
+            }
             
             const existingData = {};
             tbody.querySelectorAll('tr').forEach(tr => {
@@ -1960,12 +2354,15 @@
                     existingData[key] = {
                         resp: tr.querySelector('.resp-cell') ? tr.querySelector('.resp-cell').innerHTML : '',
                         start: tr.querySelector('.start-date') ? tr.querySelector('.start-date').value : '',
-                        end: tr.querySelector('.end-date') ? tr.querySelector('.end-date').value : ''
+                        end: tr.querySelector('.end-date') ? tr.querySelector('.end-date').value : '',
+                        status: tr.querySelector('.plan-status') ? tr.querySelector('.plan-status').value : 'pending'
                     };
                 }
             });
 
             tbody.innerHTML = '';
+            const frag = document.createDocumentFragment();
+
             document.querySelectorAll('.logframe-table tr').forEach(row => {
                 const tbodies = document.querySelectorAll('.logframe-table tbody');
                 const tbodyIndex = Array.from(tbodies).indexOf(row.closest('tbody'));
@@ -1978,44 +2375,138 @@
                 const visibleHtml = cell.innerHTML;
                 if(!rawText) return;
 
+                let indent = '';
+                let isActivity = false;
+                let rowClass = 'border-b ';
+
+                if(isGoalRow(rawText)) {
+                    indent = 'font-bold text-blue-900';
+                    rowClass += 'bg-blue-100/50';
+                } else if(isPurposeRow(rawText)) {
+                    indent = 'font-bold pl-4 text-gray-800';
+                    rowClass += 'bg-gray-100/80';
+                } else if(isOutputRow(rawText)) {
+                    indent = 'font-semibold pl-8 text-blue-800';
+                    rowClass += 'bg-blue-50/50';
+                } else if(isActivityRow(rawText)) {
+                    indent = 'pl-12 text-gray-700 bg-white';
+                    rowClass += 'hover:bg-gray-50 bg-white';
+                    isActivity = true;
+                }
+
                 if(isGoalRow(rawText) || isPurposeRow(rawText) || isOutputRow(rawText) || isActivityRow(rawText)) {
-                    let indent = 'font-bold bg-gray-100';
-                    let isActivity = false;
-                    
-                    if(isActivityRow(rawText)) {
-                        indent = 'pl-8 text-gray-700 bg-white';
-                        isActivity = true;
-                    }
-                    
                     const key = rawText.substring(0, 50).replace(/\s/g, '');
-                    const prev = existingData[key] || {resp: '<div class="en-text"></div><div class="lao-text"></div>', start: '', end: ''};
+                    const prev = existingData[key] || {resp: '<div class="en-text"></div><div class="lao-text"></div>', start: '', end: '', status: 'pending'};
                     
-                    let dateCellsHtml = '';
+                    let dataCellsHtml = '';
+                    let timelineCellsHtml = '';
+                    
+                    for(let i=0; i<planColumns.length; i++) {
+                        timelineCellsHtml += `<td class="p-0 border-r border-gray-200 gantt-cell relative h-10 ${!isActivity ? 'bg-transparent' : 'bg-white'}" data-col="${i}"></td>`;
+                    }
+
                     if (isActivity) {
-                        dateCellsHtml = `
-                            <td class="px-2 py-2 border-r text-center bg-white"><input type="date" class="start-date w-full bg-transparent outline-none text-[11px] text-gray-700 cursor-pointer" value="${prev.start}"></td>
-                            <td class="px-2 py-2 border-r text-center bg-white"><input type="date" class="end-date w-full bg-transparent outline-none text-[11px] text-gray-700 cursor-pointer" value="${prev.end}"></td>
+                        dataCellsHtml = `
+                            <td class="px-2 py-2 border-r text-center editable-cell resp-cell bg-white col-pl-resp" contenteditable="true">${prev.resp}</td>
+                            <td class="px-2 py-2 border-r text-center bg-white col-pl-start"><input type="date" class="start-date w-full bg-transparent outline-none text-[11px] text-gray-700 cursor-pointer" value="${prev.start}" onchange="drawGantt()"></td>
+                            <td class="px-2 py-2 border-r text-center bg-white col-pl-end"><input type="date" class="end-date w-full bg-transparent outline-none text-[11px] text-gray-700 cursor-pointer" value="${prev.end}" onchange="drawGantt()"></td>
+                            <td class="px-2 py-2 border-r text-center bg-white col-pl-status">
+                                <select class="plan-status text-[11px] w-[95%] bg-white border border-gray-300 rounded outline-none p-1 cursor-pointer" onchange="drawGantt()">
+                                    <option value="pending" ${prev.status === 'pending' ? 'selected' : ''}>${dict[currentLang]['opt-pending'] || dict['en']['opt-pending']}</option>
+                                    <option value="progress" ${prev.status === 'progress' ? 'selected' : ''}>${dict[currentLang]['opt-progress'] || dict['en']['opt-progress']}</option>
+                                    <option value="completed" ${prev.status === 'completed' ? 'selected' : ''}>${dict[currentLang]['opt-completed'] || dict['en']['opt-completed']}</option>
+                                    <option value="delayed" ${prev.status === 'delayed' ? 'selected' : ''}>${dict[currentLang]['opt-delayed'] || dict['en']['opt-delayed']}</option>
+                                </select>
+                            </td>
                         `;
                     } else {
-                        dateCellsHtml = `
-                            <td class="px-2 py-2 border-r text-center bg-gray-100"></td>
-                            <td class="px-2 py-2 border-r text-center bg-gray-100"></td>
+                        dataCellsHtml = `
+                            <td class="px-2 py-2 border-r text-center col-pl-resp"></td>
+                            <td class="px-2 py-2 border-r text-center col-pl-start"></td>
+                            <td class="px-2 py-2 border-r text-center col-pl-end"></td>
+                            <td class="px-2 py-2 border-r text-center col-pl-status"></td>
                         `;
                     }
                     
                     const tr = document.createElement('tr');
                     tr.dataset.key = key;
-                    tr.className = 'border-b hover:bg-gray-50';
+                    tr.className = rowClass;
                     tr.innerHTML = `
-                        <td class="px-4 py-2 border-r ${indent}">${visibleHtml}</td>
-                        <td class="px-4 py-2 border-r text-center ${isActivity ? 'editable-cell resp-cell bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}">${isActivity ? prev.resp : ''}</td>
-                        ${dateCellsHtml}
-                        <td class="px-1 py-2 border-r editable-cell ${isActivity ? 'bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}"></td>
-                        <td class="px-1 py-2 border-r editable-cell ${isActivity ? 'bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}"></td>
-                        <td class="px-1 py-2 border-r editable-cell ${isActivity ? 'bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}"></td>
-                        <td class="px-1 py-2 editable-cell ${isActivity ? 'bg-white' : 'bg-gray-100'}" contenteditable="${isActivity ? 'true' : 'false'}"></td>
+                        <td class="px-4 py-2 border-r ${indent} relative group/row">
+                            <button onclick="hideRow(this)" class="absolute left-1 top-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover/row:opacity-100 transition-opacity hide-on-export z-10" title="Hide Row"><i class="fas fa-eye-slash text-[10px]"></i></button>
+                            ${visibleHtml}
+                        </td>
+                        ${dataCellsHtml}
+                        ${timelineCellsHtml}
                     `;
-                    tbody.appendChild(tr);
+                    frag.appendChild(tr);
+                }
+            });
+            
+            tbody.appendChild(frag);
+            drawGantt();
+        }
+
+        function drawGantt() {
+            const tbody = document.querySelector('.planning-table tbody');
+            if (!tbody) return;
+
+            // Pre-calculate column dates once to boost performance
+            const colTimes = planColumns.map(col => ({
+                start: new Date(col.start).setHours(0,0,0,0),
+                end: new Date(col.end).setHours(23,59,59,999),
+                type: col.type
+            }));
+
+            tbody.querySelectorAll('tr').forEach(tr => {
+                const startInput = tr.querySelector('.start-date');
+                const endInput = tr.querySelector('.end-date');
+                const statusSelect = tr.querySelector('.plan-status');
+                const ganttCells = tr.querySelectorAll('.gantt-cell'); // Cache nodes
+
+                if (startInput && endInput && startInput.value && endInput.value) {
+                    const taskStart = new Date(startInput.value).setHours(0,0,0,0);
+                    const taskEnd = new Date(endInput.value).setHours(23,59,59,999);
+                    const status = statusSelect ? statusSelect.value : 'pending';
+
+                    let colorClass = 'bg-gray-300 border-gray-400';
+                    if (status === 'progress') colorClass = 'bg-blue-400 border-blue-500 shadow-sm';
+                    if (status === 'completed') colorClass = 'bg-green-400 border-green-500 shadow-sm';
+                    if (status === 'delayed') colorClass = 'bg-red-400 border-red-500 shadow-sm';
+
+                    colTimes.forEach((col, i) => {
+                        const td = ganttCells[i];
+                        if (!td) return;
+
+                        if (taskStart <= col.end && taskEnd >= col.start) {
+                            let classString = `absolute top-1/2 -translate-y-1/2 h-5 z-0 border ${colorClass}`;
+                            let widthStr = "w-full left-0";
+                            let isStartCol = taskStart >= col.start && taskStart <= col.end;
+                            let isEndCol = taskEnd >= col.start && taskEnd <= col.end;
+
+                            if (col.type === 'month') {
+                                if (isStartCol && isEndCol) {
+                                    classString += ' rounded-md'; widthStr = "w-[80%] left-[10%]";
+                                } else if (isStartCol) {
+                                    classString += ' rounded-l-md border-r-0'; widthStr = "w-[70%] left-[30%]";
+                                } else if (isEndCol) {
+                                    classString += ' rounded-r-md border-l-0'; widthStr = "w-[70%] left-0";
+                                } else {
+                                    classString += ' border-l-0 border-r-0';
+                                }
+                            } else {
+                                if (isStartCol && isEndCol) classString += ' rounded-md';
+                                else if (isStartCol) classString += ' rounded-l-md border-r-0';
+                                else if (isEndCol) classString += ' rounded-r-md border-l-0';
+                                else classString += ' border-l-0 border-r-0';
+                            }
+                            td.innerHTML = `<div class="${classString} ${widthStr}"></div>`;
+                        } else {
+                            td.innerHTML = '';
+                        }
+                    });
+                } else {
+                    ganttCells.forEach(td => td.innerHTML = '');
                 }
             });
         }
@@ -2064,11 +2555,14 @@
                     total += rowTotal;
 
                     tr.innerHTML = `
-                        <td class="px-4 py-2 border-r text-gray-700">${visibleHtml}</td>
-                        <td class="px-4 py-2 border-r text-gray-600">${resourceHtml}</td>
-                        <td class="px-4 py-2 border-r text-right editable-cell b-unit" contenteditable="true">${prev.unit}</td>
-                        <td class="px-4 py-2 border-r text-right editable-cell b-cost" contenteditable="true" oninput="calcBudgetRow(this)">${prev.cost}</td>
-                        <td class="px-4 py-2 border-r text-right editable-cell b-qty" contenteditable="true" oninput="calcBudgetRow(this)">${prev.qty}</td>
+                        <td class="px-4 py-2 border-r text-gray-700 relative group/row">
+                            <button onclick="hideRow(this)" class="absolute left-1 top-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover/row:opacity-100 transition-opacity hide-on-export z-10" title="Hide Row"><i class="fas fa-eye-slash text-[10px]"></i></button>
+                            ${visibleHtml}
+                        </td>
+                        <td class="px-4 py-2 border-r text-gray-600 col-bg-res">${resourceHtml}</td>
+                        <td class="px-4 py-2 border-r text-right editable-cell b-unit col-bg-unit" contenteditable="true">${prev.unit}</td>
+                        <td class="px-4 py-2 border-r text-right editable-cell b-cost col-bg-cost" contenteditable="true" oninput="calcBudgetRow(this)">${prev.cost}</td>
+                        <td class="px-4 py-2 border-r text-right editable-cell b-qty col-bg-qty" contenteditable="true" oninput="calcBudgetRow(this)">${prev.qty}</td>
                         <td class="px-4 py-2 text-right text-green-700 font-medium b-total">${rowTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     `;
                     tbody.appendChild(tr);
@@ -2290,6 +2784,7 @@
             trackingTbody.innerHTML = '';
             let hasData = false;
             const colspanTotal = 7 + (trackingYearCount * 3);
+            const frag = document.createDocumentFragment();
 
             logframeTable.querySelectorAll('tr').forEach(row => {
                 const tbodies = document.querySelectorAll('.logframe-table tbody');
@@ -2319,9 +2814,9 @@
                 if (isHeader) {
                     const trHeader = document.createElement('tr');
                     trHeader.innerHTML = `<td class="px-4 py-2 border-r ${indentClass} ${bgColor}" colspan="${colspanTotal}">${visibleHtml}</td>`;
-                    trackingTbody.appendChild(trHeader);
+                    frag.appendChild(trHeader);
 
-                    const indCell = row.cells[1];
+                    const indCell = row.querySelector('.col-lf-ind');
                     if (indCell) {
                         indCell.querySelectorAll('.list-item').forEach(item => {
                             const rawIndText = item.textContent.trim();
@@ -2383,13 +2878,15 @@
                                         <div class="notes-content editable-cell p-1 min-h-[2.5em] border border-transparent hover:border-gray-300 rounded" contenteditable="true">${prev.notes}</div>
                                     </td>
                                 `;
-                                trackingTbody.appendChild(trInd);
+                                frag.appendChild(trInd);
                                 hasData = true;
                             }
                         });
                     }
                 }
             });
+
+            trackingTbody.appendChild(frag);
 
             if (!hasData) {
                 trackingTbody.innerHTML = `<tr><td colspan="${colspanTotal}" class="text-center py-6 text-gray-500 italic">ບໍ່ມີຂໍ້ມູນຕົວຊີ້ວັດ ກະລຸນາເພີ່ມໃນ Logframe ກ່ອນ...</td></tr>`;
@@ -2505,7 +3002,9 @@
         window.addTrackingYear = addTrackingYear;
         window.syncYearHeader = syncYearHeader;
         window.calcYearlyActuals = calcYearlyActuals;
+        window.buildPlanningTimeline = buildPlanningTimeline;
         window.syncPlanningFromLogframe = syncPlanningFromLogframe;
+        window.drawGantt = drawGantt;
         window.syncBudget = syncBudget;
         window.syncTracking = syncTracking;
         window.calcProgress = calcProgress;
@@ -2519,6 +3018,10 @@
         window.loadFromCache = loadFromCache;
         window.filterByGoal = filterByGoal;
         window.clearFilter = clearFilter;
+        window.hideColumn = hideColumn;
+        window.unhideColumns = unhideColumns;
+        window.hideRow = hideRow;
+        window.unhideRows = unhideRows;
         window.applyIndicatorStatus = applyIndicatorStatus;
         window.toggleArchivedTracking = toggleArchivedTracking;
         window.hideSpecificIndicator = hideSpecificIndicator;
