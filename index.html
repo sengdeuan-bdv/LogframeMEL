@@ -6,6 +6,8 @@
     <title>Logframe Application</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap');
         
@@ -26,6 +28,9 @@
             border: 1px solid #9ca3af;
             padding: 8px 12px;
             text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 20;
         }
         .logframe-table td, .tracking-table td, .planning-table td, .budget-table td {
             background-color: #f3f4f6;
@@ -49,6 +54,13 @@
 
         .exporting .add-btn, .exporting .hide-on-export, .exporting .filter-btn { display: none !important; }
         
+        /* Status Styles */
+        .hide-archived .is-cancelled, .hide-archived .is-completed { display: none !important; }
+        .is-cancelled { opacity: 0.5; background-color: #f3f4f6 !important; }
+        .is-cancelled .format-num { text-decoration: line-through; color: #9ca3af; }
+        .is-completed { background-color: #f0fdf4 !important; }
+        .user-hidden { display: none !important; }
+        
         /* Language Toggle Styles */
         body.lang-en .lao-text { display: none !important; }
         body.lang-lo .en-text { display: none !important; }
@@ -60,6 +72,14 @@
         body.lang-lo .lao-text { color: inherit; font-size: inherit; margin-top: 0; }
         
         .en-text, .lao-text { outline: none; min-height: 1.2em; word-break: break-word; }
+
+        /* Prevent black resizing dots on buttons inside contenteditable */
+        [contenteditable="false"] {
+            user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            outline: none;
+        }
 
         /* Level Visibility Styles */
         body.show-levels-3 .level-4-section { display: none !important; }
@@ -143,6 +163,9 @@
                 <button onclick="switchTab('project')" id="btn-project" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
                     <i class="fas fa-folder-open text-yellow-500 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-project">Project</span>
                 </button>
+                <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
+                    <i class="fas fa-chart-pie text-pink-500 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-dashboard">Dashboard</span>
+                </button>
                 <button onclick="switchTab('logframe')" id="btn-logframe" class="tab-btn bg-blue-100 border-blue-300 flex flex-col items-center justify-center p-2 rounded hover:bg-blue-200 min-w-[70px] border">
                     <i class="fas fa-table-cells text-green-600 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-logframe">Logframe</span>
                 </button>
@@ -182,6 +205,50 @@
                         <textarea id="proj-desc-en" class="en-text mb-2 w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500" rows="3">A comprehensive program aimed at achieving gender equality and empowering women and girls across all spheres of life.</textarea>
                         <textarea id="proj-desc-lo" class="lao-text w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500" rows="3">ໂຄງການຮອບດ້ານທີ່ແນໃສ່ການບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແກ່ແມ່ຍິງ ແລະ ເດັກຍິງໃນທຸກຂົງເຂດ</textarea>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD TAB -->
+        <div id="tab-dashboard" class="tab-content hidden w-full h-full p-6 overflow-y-auto bg-gray-50">
+            <div class="flex justify-between items-end mb-6 border-b pb-2 hide-on-export">
+                <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-dashboard">Dashboard</h2>
+                <button onclick="syncDashboard()" class="bg-pink-50 text-pink-600 border border-pink-200 px-3 py-1.5 rounded hover:bg-pink-100 transition-colors shadow-sm text-sm font-medium">
+                    <i class="fas fa-sync-alt mr-1"></i> <span data-i18n="btn-sync-dash">Refresh Data</span>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Budget Chart -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col items-center">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4 w-full text-center" data-i18n="lbl-chart-budget">Budget Distribution</h3>
+                    <div class="relative w-full max-w-[300px] aspect-square">
+                        <canvas id="budgetChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Progress Chart -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4 text-center" data-i18n="lbl-chart-progress">Indicators Progress Overview</h3>
+                    <div class="relative w-full h-64">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center">
+                    <div class="text-gray-500 text-sm font-medium mb-1" data-i18n="stat-total-budget">Total Budget (USD)</div>
+                    <div class="text-2xl font-bold text-green-600" id="dash-total-budget">0.00</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center">
+                    <div class="text-gray-500 text-sm font-medium mb-1" data-i18n="stat-avg-progress">Average Progress</div>
+                    <div class="text-2xl font-bold text-blue-600" id="dash-avg-progress">0%</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center">
+                    <div class="text-gray-500 text-sm font-medium mb-1" data-i18n="stat-total-activities">Total Activities</div>
+                    <div class="text-2xl font-bold text-purple-600" id="dash-total-activities">0</div>
                 </div>
             </div>
         </div>
@@ -262,7 +329,7 @@
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative">
                                 <div class="flex items-center justify-center gap-2">
                                     <span data-i18n="th-goals">Goals</span>
-                                    <button onclick="addLogframeRow('goal')" class="bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow-sm flex items-center justify-center transition-colors" title="Add Goal"><i class="fas fa-plus text-xs"></i></button>
+                                    <button onclick="addLogframeRow('goal')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm flex items-center justify-center transition-colors text-xs font-normal" title="Add Goal"><i class="fas fa-plus mr-1"></i> ໝວດໃໝ່ (Row)</button>
                                 </div>
                             </th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
@@ -271,23 +338,25 @@
                         </tr>
                         <tr class="sync-row" data-prefix="1" data-ref="goal-1">
                             <td class="editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete Row"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-[28px] bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter by this Goal"><i class="fas fa-filter text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('goal', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[52px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Goal Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="addLogframeRow('goal', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
+                                    <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
+                                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບແຖວ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                </div>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal 1:</span> Achieve gender equality and empower all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ 1:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
                             <td class="bg-gray-100 relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
                             <td class="bg-gray-100 relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
                             <td class="bg-gray-100 relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
                         </tr>
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
@@ -298,7 +367,6 @@
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative">
                                 <div class="flex items-center justify-center gap-2">
                                     <span data-i18n="th-purposes">Purposes</span>
-                                    <button onclick="addLogframeRow('purpose')" class="bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow-sm flex items-center justify-center transition-colors" title="Add Purpose"><i class="fas fa-plus text-xs"></i></button>
                                 </div>
                             </th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
@@ -307,37 +375,41 @@
                         </tr>
                         <tr class="blue-ribbon" data-parent-ref="goal-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Purpose Inside"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" class="bg-teal-500 hover:bg-teal-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Inside (ເພີ່ມລາຍການຍ່ອຍ)"><i class="fas fa-level-down-alt text-[10px]"></i></button>
+                                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                </div>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal 1:</span> Achieve gender equality and empower all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ 1:</span> ບັນລຸຄວາມສະເໝີພາບຍິງ-ຊາຍ ແລະ ສົ່ງເສີມຄວາມເຂັ້ມແຂງໃຫ້ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
                         </tr>
                         <tr class="purpose-row sync-row" data-prefix="1.1" data-ref="purp-1-1">
                             <td class="editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-[28px] bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter"><i class="fas fa-filter text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[52px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Purpose Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
+                                    <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
+                                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບແຖວ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                </div>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.1</span> End all forms of discrimination against all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.1</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
                             <td class="bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
                                     <div class="list-item relative group/item" contenteditable="true">
-                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
+                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
                                         <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1</span> Legal frameworks in place to promote equality</div>
                                         <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1</span> ມີກອບກົດໝາຍເພື່ອສົ່ງເສີມຄວາມສະເໝີພາບ</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
                             <td class="bg-white relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
                             <td class="bg-white relative group align-top has-list p-0">
-                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="list-container"><div class="list-item relative group/item" contenteditable="true"><button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button><div class="en-text"></div><div class="lao-text"></div></div></div>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
                         </tr>
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
@@ -348,7 +420,6 @@
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative">
                                 <div class="flex items-center justify-center gap-2">
                                     <span data-i18n="th-outputs">Outputs</span>
-                                    <button onclick="addLogframeRow('output')" class="bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow-sm flex items-center justify-center transition-colors" title="Add Output"><i class="fas fa-plus text-xs"></i></button>
                                 </div>
                             </th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-indicators">Indicators</th>
@@ -357,49 +428,53 @@
                         </tr>
                         <tr class="blue-ribbon" data-parent-ref="purp-1-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="level-3-section absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Output Inside"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" class="level-3-section bg-teal-500 hover:bg-teal-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Inside (ເພີ່ມລາຍການຍ່ອຍ)"><i class="fas fa-level-down-alt text-[10px]"></i></button>
+                                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                </div>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">1.1</span> End all forms of discrimination against all women and girls</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">1.1</span> ຍຸຕິທຸກຮູບແບບການຈຳແນກຕໍ່ແມ່ຍິງ ແລະ ເດັກຍິງທຸກຄົນ</div>
                             </td>
                         </tr>
                         <tr class="output-row sync-row" data-prefix="1.1.1" data-ref="out-1-1-1">
                             <td class="!bg-white editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-[28px] bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter"><i class="fas fa-filter text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[52px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Output Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
+                                    <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
+                                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບແຖວ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                </div>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1.1:</span> Legal reviews conducted.</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
                             </td>
                             <td class="!bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
                                     <div class="list-item relative group/item" contenteditable="true">
-                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
+                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
                                         <div class="en-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1.1</span> Number of reviews completed.</div>
                                         <div class="lao-text"><span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">1.1.1.1</span> ຈຳນວນການທົບທວນທີ່ສຳເລັດ.</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addItem(this, true)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
                             <td class="!bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
                                     <div class="list-item relative group/item" contenteditable="true">
-                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
+                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
                                         <div class="en-text">Project Reports</div>
                                         <div class="lao-text">ບົດລາຍງານໂຄງການ</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
                             <td class="!bg-white relative group align-top has-list p-0">
                                 <div class="list-container">
                                     <div class="list-item relative group/item" contenteditable="true">
-                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
+                                        <button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>
                                         <div class="en-text">Government willingness.</div>
                                         <div class="lao-text">ຄວາມເຕັມໃຈຂອງລັດຖະບານ</div>
                                     </div>
                                 </div>
-                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>
+                                <button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>
                             </td>
                         </tr>
                         <tr><td colspan="4" class="h-4 !p-0 !border-0 !bg-gray-200"></td></tr>
@@ -410,7 +485,6 @@
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative">
                                 <div class="flex items-center justify-center gap-2">
                                     <span data-i18n="th-activities">Activities</span>
-                                    <button onclick="addLogframeRow('activity')" class="bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow-sm flex items-center justify-center transition-colors" title="Add Activity"><i class="fas fa-plus text-xs"></i></button>
                                 </div>
                             </th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg" data-i18n="th-resources">Resources</th>
@@ -419,16 +493,20 @@
                         </tr>
                         <tr class="blue-ribbon" data-parent-ref="out-1-1-1">
                             <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="level-4-section absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Activity Inside"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" class="level-4-section bg-teal-500 hover:bg-teal-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Inside (ເພີ່ມລາຍການຍ່ອຍ)"><i class="fas fa-level-down-alt text-[10px]"></i></button>
+                                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                </div>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output 1.1.1:</span> Legal reviews conducted.</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ 1.1.1:</span> ການທົບທວນກົດໝາຍສຳເລັດແລ້ວ.</div>
                             </td>
                         </tr>
                         <tr class="activity-row" data-prefix="1.1.1.1" data-ref="act-1-1-1-1">
                             <td class="!bg-white editable-cell relative group" contenteditable="true">
-                                <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-minus text-[10px]"></i></button>
-                                <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Activity Below"><i class="fas fa-plus text-[10px]"></i></button>
+                                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                                    <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
+                                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບແຖວ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                </div>
                                 <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act 1.1.1.1:</span> Hire legal consultants</div>
                                 <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ 1.1.1.1:</span> ຈ້າງທີ່ປຶກສາດ້ານກົດໝາຍ</div>
                             </td>
@@ -515,6 +593,18 @@
             <div class="flex justify-between items-end mb-4 border-b pb-2">
                 <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-tracking">Indicators Tracking</h2>
                 <div class="flex gap-2">
+                    <button onclick="unhideAllYears()" id="btn-unhide-years" class="hidden bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                        <i class="fas fa-calendar-check mr-1"></i> <span data-i18n="btn-show-years">Show Hidden Years</span>
+                    </button>
+                    <button onclick="unhideAllNotesCols()" id="btn-unhide-cols" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                        <i class="fas fa-columns mr-1"></i> <span data-i18n="btn-unhide-cols">Show Notes Cols</span>
+                    </button>
+                    <button onclick="showAllHiddenIndicators()" id="btn-show-all-hidden" class="hidden bg-yellow-50 text-yellow-600 border border-yellow-200 px-3 py-1.5 rounded hover:bg-yellow-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                        <i class="fas fa-eye mr-1"></i> <span data-i18n="btn-show-hidden">Show Hidden</span>
+                    </button>
+                    <button onclick="toggleArchivedTracking()" id="btn-toggle-archived" class="bg-gray-100 text-gray-600 border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors shadow-sm text-sm font-medium">
+                        <i class="fas fa-eye-slash mr-1"></i> <span data-i18n="btn-toggle-archive">Hide Archived</span>
+                    </button>
                     <button onclick="addTrackingYear()" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors shadow-sm text-sm font-medium">
                         <i class="fas fa-plus mr-1"></i> <span data-i18n="btn-add-year">Add Year</span>
                     </button>
@@ -549,6 +639,13 @@
             <h3 class="text-lg font-bold mb-2 text-gray-800" data-i18n="lbl-export-options">Export Options</h3>
             <p class="text-sm text-gray-600 mb-6" data-i18n="desc-export-options">Select how you want to export the data:</p>
             <div class="flex flex-col gap-3">
+                <button onclick="confirmExport('pdf')" class="w-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 py-3 px-4 rounded text-left flex items-center transition-colors hide-on-export">
+                    <i class="fas fa-file-pdf w-8 text-center text-xl mr-2"></i>
+                    <div>
+                        <div class="font-bold" data-i18n="btn-export-pdf">Export as PDF</div>
+                        <div class="text-xs font-normal text-red-600 mt-1" data-i18n="desc-export-pdf">Download viewable document</div>
+                    </div>
+                </button>
                 <button onclick="confirmExport('format')" class="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 py-3 px-4 rounded text-left flex items-center transition-colors">
                     <i class="fas fa-paint-roller w-8 text-center text-xl mr-2"></i>
                     <div>
@@ -582,9 +679,9 @@
         const dict = {
             'en': {
                 'menu-project': 'Project',
-                'tab-project': 'Project', 'tab-logframe': 'Logframe', 'tab-tracking': 'Tracking', 'tab-planning': 'Planning', 'tab-budget': 'Budget', 'tab-settings': 'Settings',
+                'tab-project': 'Project', 'tab-logframe': 'Logframe', 'tab-tracking': 'Tracking', 'tab-planning': 'Planning', 'tab-budget': 'Budget', 'tab-settings': 'Settings', 'tab-dashboard': 'Dashboard',
                 'btn-save-html': 'Save HTML', 'btn-json': 'JSON', 'btn-import': 'Import', 'btn-excel': 'Excel', 'btn-word': 'Word',
-                'btn-add': 'Add', 'btn-sync': 'Sync from Logframe', 'btn-add-year': 'Add Year',
+                'btn-add': 'Add', 'btn-sync': 'Sync from Logframe', 'btn-add-year': 'Add Year', 'btn-sync-dash': 'Refresh Data',
                 'btn-add-goal': 'Add Goal', 'btn-add-purpose': 'Add Purpose', 'btn-add-output': 'Add Output', 'btn-add-activity': 'Add Activity',
                 'btn-quick-save': 'Quick Save', 'btn-restore-cache': 'Restore', 'btn-paste': 'Paste Value',
                 'lbl-proj-info': 'Project Information', 'lbl-proj-title': 'Project Title', 'lbl-proj-code': 'Project Code', 'lbl-proj-desc': 'Description',
@@ -597,9 +694,11 @@
                 'th-hierarchy': 'Hierarchy / Indicator', 'th-baseline': 'Baseline', 'th-target': 'Target', 'th-actual': 'Actual Progress', 'th-progress': 'Progress (%)', 'th-status': 'Status / Notes',
                 'th-target-overall': 'Overall Target', 'th-actual-overall': 'Overall Actual',
                 'th-target-small': 'Target', 'th-actual-small': 'Actual',
+                'th-yearly-notes': 'Yearly Notes',
                 'th-unit': 'Unit',
                 'lbl-export-options': 'Export Options',
                 'desc-export-options': 'Select how you want to export the data:',
+                'btn-export-pdf': 'Export as PDF', 'desc-export-pdf': 'Download viewable document',
                 'btn-export-format': 'With Formatting',
                 'desc-export-format': 'Keep colors, bold text, and layout (.xls / .doc)',
                 'btn-export-raw': 'Raw Data Only',
@@ -612,13 +711,20 @@
                 'lbl-num-levels': 'Number of Levels:',
                 'opt-levels-4': '4 Levels (Goals, Purposes, Outputs, Activities)',
                 'opt-levels-3': '3 Levels (Goals, Purposes, Outputs)',
-                'opt-levels-2': '2 Levels (Goals, Purposes)'
+                'opt-levels-2': '2 Levels (Goals, Purposes)',
+                'lbl-chart-budget': 'Budget Distribution', 'lbl-chart-progress': 'Indicators Progress Overview',
+                'stat-total-budget': 'Total Budget (USD)', 'stat-avg-progress': 'Average Progress', 'stat-total-activities': 'Total Activities',
+                'btn-toggle-archive': 'Hide Archived (Completed/Cancelled)',
+                'btn-show-archive': 'Show All Indicators',
+                'btn-show-hidden': 'Unhide All',
+                'btn-unhide-cols': 'Show Notes Columns',
+                'btn-show-years': 'Show Hidden Years'
             },
             'lo': {
                 'menu-project': 'ໂຄງການ',
-                'tab-project': 'ໂຄງການ', 'tab-logframe': 'Logframe', 'tab-tracking': 'ຕິດຕາມຕົວຊີ້ວັດ', 'tab-planning': 'ແຜນວຽກ', 'tab-budget': 'ງົບປະມານ', 'tab-settings': 'ຕັ້ງຄ່າ',
+                'tab-project': 'ໂຄງການ', 'tab-logframe': 'Logframe', 'tab-tracking': 'ຕິດຕາມຕົວຊີ້ວັດ', 'tab-planning': 'ແຜນວຽກ', 'tab-budget': 'ງົບປະມານ', 'tab-settings': 'ຕັ້ງຄ່າ', 'tab-dashboard': 'ແຜງຄວບຄຸມ',
                 'btn-save-html': 'ບັນທຶກ HTML', 'btn-json': 'JSON', 'btn-import': 'ນຳເຂົ້າ', 'btn-excel': 'Excel', 'btn-word': 'Word',
-                'btn-add': 'ເພີ່ມ', 'btn-sync': 'ດຶງຂໍ້ມູນຈາກ Logframe', 'btn-add-year': 'ເພີ່ມປີ',
+                'btn-add': 'ເພີ່ມ', 'btn-sync': 'ດຶງຂໍ້ມູນຈາກ Logframe', 'btn-add-year': 'ເພີ່ມປີ', 'btn-sync-dash': 'ອັບເດດຂໍ້ມູນ',
                 'btn-add-goal': 'ເພີ່ມເປົ້າໝາຍ', 'btn-add-purpose': 'ເພີ່ມຈຸດປະສົງ', 'btn-add-output': 'ເພີ່ມຜົນໄດ້ຮັບ', 'btn-add-activity': 'ເພີ່ມກິດຈະກຳ',
                 'btn-quick-save': 'ບັນທຶກດ່ວນ', 'btn-restore-cache': 'ດຶງຂໍ້ມູນຄືນ', 'btn-paste': 'ວາງຂໍ້ຄວາມ',
                 'lbl-proj-info': 'ຂໍ້ມູນໂຄງການ', 'lbl-proj-title': 'ຊື່ໂຄງການ', 'lbl-proj-code': 'ລະຫັດໂຄງການ', 'lbl-proj-desc': 'ລາຍລະອຽດ',
@@ -631,9 +737,11 @@
                 'th-hierarchy': 'ໂຄງສ້າງ / ຕົວຊີ້ວັດ', 'th-baseline': 'ຄ່າພື້ນຖານ', 'th-target': 'ເປົ້າໝາຍ', 'th-actual': 'ຜົນຕົວຈິງ', 'th-progress': 'ຄວາມຄືບໜ້າ', 'th-status': 'ສະຖານະ/ໝາຍເຫດ',
                 'th-target-overall': 'ເປົ້າໝາຍລວມ', 'th-actual-overall': 'ຜົນລວມຕົວຈິງ',
                 'th-target-small': 'ເປົ້າໝາຍ', 'th-actual-small': 'ຜົນຕົວຈິງ',
+                'th-yearly-notes': 'ບັນທຶກເຫດຜົນ',
                 'th-unit': 'ຫົວໜ່ວຍ',
                 'lbl-export-options': 'ຕົວເລືອກການສົ່ງອອກ',
                 'desc-export-options': 'ກະລຸນາເລືອກຮູບແບບທີ່ທ່ານຕ້ອງການສົ່ງອອກ:',
+                'btn-export-pdf': 'ສົ່ງອອກເປັນ PDF', 'desc-export-pdf': 'ດາວໂຫຼດໄຟລ໌ PDF',
                 'btn-export-format': 'ສົ່ງອອກພ້ອມຮູບແບບ',
                 'desc-export-format': 'ຮັກສາສີ, ຕົວໜັງສືເຂັ້ມ ແລະ ການຈັດໜ້າ (.xls / .doc)',
                 'btn-export-raw': 'ສົ່ງອອກສະເພາະຂໍ້ມູນ (Raw)',
@@ -646,7 +754,14 @@
                 'lbl-num-levels': 'ຈຳນວນລະດັບຊັ້ນ (Levels):',
                 'opt-levels-4': '4 ລະດັບ (ເປົ້າໝາຍ, ຈຸດປະສົງ, ຜົນໄດ້ຮັບ, ກິດຈະກຳ)',
                 'opt-levels-3': '3 ລະດັບ (ເປົ້າໝາຍ, ຈຸດປະສົງ, ຜົນໄດ້ຮັບ)',
-                'opt-levels-2': '2 ລະດັບ (ເປົ້າໝາຍ, ຈຸດປະສົງ)'
+                'opt-levels-2': '2 ລະດັບ (ເປົ້າໝາຍ, ຈຸດປະສົງ)',
+                'lbl-chart-budget': 'ສັດສ່ວນງົບປະມານຕາມກິດຈະກຳ', 'lbl-chart-progress': 'ພາບລວມຄວາມຄືບໜ້າຕົວຊີ້ວັດ',
+                'stat-total-budget': 'ງົບປະມານລວມ (USD)', 'stat-avg-progress': 'ຄວາມຄືບໜ້າສະເລ່ຍ', 'stat-total-activities': 'ຈຳນວນກິດຈະກຳທັງໝົດ',
+                'btn-toggle-archive': 'ຊ່ອນໂຕທີ່ຍົກເລີກ/ສຳເລັດ',
+                'btn-show-archive': 'ສະແດງຕົວຊີ້ວັດທັງໝົດ',
+                'btn-show-hidden': 'ສະແດງໂຕທີ່ຊ່ອນ',
+                'btn-unhide-cols': 'ສະແດງຖັນບັນທຶກ',
+                'btn-show-years': 'ສະແດງປີທີ່ຊ່ອນ'
             }
         };
 
@@ -927,12 +1042,41 @@
 
         function confirmExport(mode) {
             closeExportModal();
-            if (pendingExportType === 'excel') {
+            if (mode === 'pdf') {
+                exportPDF();
+            } else if (pendingExportType === 'excel') {
                 if (mode === 'format') exportExcelFormatted();
                 else exportExcelRaw();
             } else if (pendingExportType === 'word') {
                 exportWord(mode);
             }
+        }
+
+        function exportPDF() {
+            const activeTab = document.querySelector('.tab-content:not(.hidden)');
+            if (!activeTab) return;
+            
+            document.body.classList.add('exporting'); // Hides UI elements safely
+            
+            // Try to find the inner container or use the tab itself
+            const containerToExport = activeTab.querySelector('.table-container') || activeTab.querySelector('.bg-white.border.rounded-lg') || activeTab;
+            
+            const opt = {
+                margin:       0.3,
+                filename:     'Logframe_Export.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, windowWidth: containerToExport.scrollWidth },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+            };
+
+            showToast("ກຳລັງສ້າງ PDF... (Generating PDF...)", "success");
+            html2pdf().set(opt).from(containerToExport).save().then(() => {
+                document.body.classList.remove('exporting');
+            }).catch(err => {
+                console.error(err);
+                document.body.classList.remove('exporting');
+                showToast("ເກີດຂໍ້ຜິດພາດໃນການສ້າງ PDF", "error");
+            });
         }
 
         function saveAsHTML() {
@@ -1176,12 +1320,110 @@
             });
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
             const activeBtn = document.getElementById(`btn-${tabId}`);
-            activeBtn.classList.remove('border-transparent');
-            activeBtn.classList.add('bg-blue-100', 'border-blue-300');
+            if(activeBtn) {
+                activeBtn.classList.remove('border-transparent');
+                activeBtn.classList.add('bg-blue-100', 'border-blue-300');
+            }
 
+            if (tabId === 'dashboard') syncDashboard();
             if (tabId === 'planning') syncPlanningFromLogframe();
             if (tabId === 'budget') syncBudget();
             if (tabId === 'tracking') syncTracking();
+        }
+
+        let budgetChartInstance = null;
+        let progressChartInstance = null;
+
+        function syncDashboard() {
+            syncBudget(); // Ensure budget is calculated
+            syncTracking(); // Ensure tracking is calculated
+            
+            // 1. Calculate Budget Stats
+            const budgetTbody = document.getElementById('budget-tbody');
+            const activityLabels = [];
+            const budgetData = [];
+            let totalBudget = 0;
+            let totalActivities = 0;
+            
+            if (budgetTbody) {
+                budgetTbody.querySelectorAll('tr').forEach(tr => {
+                    const actName = tr.cells[0]?.textContent.trim().split(':')[0] || 'Unknown';
+                    const actTotal = parseFloat(tr.cells[5]?.textContent.replace(/,/g, '')) || 0;
+                    if (actTotal > 0) {
+                        activityLabels.push(actName);
+                        budgetData.push(actTotal);
+                    }
+                    totalBudget += actTotal;
+                    totalActivities++;
+                });
+            }
+            
+            document.getElementById('dash-total-budget').innerText = totalBudget.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('dash-total-activities').innerText = totalActivities;
+
+            // 2. Calculate Progress Stats
+            const trackingTbody = document.getElementById('tracking-tbody');
+            const indicatorLabels = [];
+            const progressData = [];
+            let sumProgress = 0;
+            let countIndicators = 0;
+
+            if (trackingTbody) {
+                trackingTbody.querySelectorAll('tr.indicator-row-track').forEach(tr => {
+                    const indName = tr.cells[0]?.textContent.trim() || 'Ind';
+                    const progText = tr.querySelector('.track-progress')?.innerText || '0';
+                    const progVal = parseFloat(progText.replace('%','')) || 0;
+                    
+                    indicatorLabels.push(indName.substring(0, 20) + '...');
+                    progressData.push(progVal);
+                    
+                    sumProgress += progVal;
+                    countIndicators++;
+                });
+            }
+            
+            const avgProgress = countIndicators > 0 ? Math.round(sumProgress / countIndicators) : 0;
+            document.getElementById('dash-avg-progress').innerText = avgProgress + '%';
+
+            // 3. Render Charts
+            const ctxBudget = document.getElementById('budgetChart');
+            const ctxProgress = document.getElementById('progressChart');
+            
+            if (!ctxBudget || !ctxProgress) return;
+
+            if (budgetChartInstance) budgetChartInstance.destroy();
+            if (progressChartInstance) progressChartInstance.destroy();
+
+            budgetChartInstance = new Chart(ctxBudget, {
+                type: 'doughnut',
+                data: {
+                    labels: activityLabels.length ? activityLabels : ['No Data'],
+                    datasets: [{
+                        data: budgetData.length ? budgetData : [1],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } }
+            });
+
+            progressChartInstance = new Chart(ctxProgress, {
+                type: 'bar',
+                data: {
+                    labels: indicatorLabels.length ? indicatorLabels : ['No Data'],
+                    datasets: [{
+                        label: 'Progress (%)',
+                        data: progressData.length ? progressData : [0],
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
         }
 
         function syncRowHeights(tr) {
@@ -1204,7 +1446,7 @@
                         const count = list.querySelectorAll('.list-item').length;
                         prefixHtml = `<span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${tr.dataset.prefix}.${count + 1}</span> `;
                     }
-                    const delBtnHtml = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
+                    const delBtnHtml = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
                     newItem.innerHTML = `${delBtnHtml}<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
                     list.appendChild(newItem);
                 }
@@ -1282,7 +1524,7 @@
                 prefixHtml = `<span class="font-bold mr-1 text-blue-600 ind-prefix" contenteditable="false">${prefix}.${count + 1}</span> `;
             }
             
-            const delBtnHtml = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
+            const delBtnHtml = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
             newItem.innerHTML = `${delBtnHtml}<div class="en-text">${prefixHtml}</div><div class="lao-text">${prefixHtml}</div>`;
             list.appendChild(newItem);
             
@@ -1328,16 +1570,43 @@
             else if (type === 'purpose') ribbonAddType = 'output';
             else if (type === 'output') ribbonAddType = 'activity';
 
-            const addBtnHtml = `<button onclick="addItem(this, false)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>`;
-            const addBtnHtmlTrue = `<button onclick="addItem(this, true)" class="add-btn absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white w-6 h-6 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export" contenteditable="false" title="Add"><i class="fas fa-plus text-[10px]"></i></button>`;
-            const itemDelBtn = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
+            const addBtnHtml = `<button onclick="addItem(this, false)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>`;
+            const addBtnHtmlTrue = `<button onclick="addItem(this, true)" class="add-btn absolute bottom-1 right-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hide-on-export z-10 text-[10px] font-medium" contenteditable="false" title="Add List Item"><i class="fas fa-list-ul mr-1"></i>ຂໍ້ໃໝ່ (Item)</button>`;
+            const itemDelBtn = `<button onclick="deleteListItem(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export" title="Delete"><i class="fas fa-times text-[10px]"></i></button>`;
 
-            const delBtn = `<button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Delete Row"><i class="fas fa-minus text-[10px]"></i></button>`;
-            const filterBtn = `<button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" contenteditable="false" class="filter-btn absolute top-1 right-[28px] bg-yellow-500 hover:bg-yellow-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Filter by this Goal"><i class="fas fa-filter text-[10px]"></i></button>`;
-            
-            const addBelowRowBtn = `<button onclick="addLogframeRow('${type}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[52px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Row Below"><i class="fas fa-plus text-[10px]"></i></button>`;
-            const addBelowActBtn = `<button onclick="addLogframeRow('${type}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Row Below"><i class="fas fa-plus text-[10px]"></i></button>`;
-            const addBelowRibbonBtn = `<button onclick="addLogframeRow('${ribbonAddType}', this)" onmousedown="event.stopPropagation();" contenteditable="false" class="level-${ribbonAddType === 'purpose' ? '2' : (ribbonAddType === 'output' ? '3' : '4')}-section absolute top-1 right-[28px] bg-green-500 hover:bg-green-600 text-white w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export" title="Add Inside"><i class="fas fa-plus text-[10px]"></i></button>`;
+            const rowActionsHtmlGoal = `
+                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="addLogframeRow('goal', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
+                    <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
+                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                </div>
+            `;
+            const rowActionsHtmlPurpose = `
+                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="addLogframeRow('purpose', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
+                    <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
+                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                </div>
+            `;
+            const rowActionsHtmlOutput = `
+                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="addLogframeRow('output', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
+                    <button onclick="filterByGoal(this)" onmousedown="event.stopPropagation();" class="filter-btn bg-yellow-500 hover:bg-yellow-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Filter (ກັ່ນຕອງ)"><i class="fas fa-filter text-[10px]"></i></button>
+                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                </div>
+            `;
+            const rowActionsHtmlActivity = `
+                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="addLogframeRow('activity', this)" onmousedown="event.stopPropagation();" class="bg-green-500 hover:bg-green-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Row Below (ເພີ່ມແຖວລຸ່ມ)"><i class="fas fa-arrow-down text-[10px]"></i></button>
+                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete Row (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                </div>
+            `;
+            const ribbonActionsHtml = `
+                <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hide-on-export" contenteditable="false">
+                    <button onclick="addLogframeRow('${ribbonAddType}', this)" onmousedown="event.stopPropagation();" class="level-${ribbonAddType === 'purpose' ? '2' : (ribbonAddType === 'output' ? '3' : '4')}-section bg-teal-500 hover:bg-teal-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Add Inside (ເພີ່ມລາຍການຍ່ອຍ)"><i class="fas fa-level-down-alt text-[10px]"></i></button>
+                    <button onclick="deleteLogframeRow(this)" onmousedown="event.stopPropagation();" class="bg-red-500 hover:bg-red-600 text-white px-1.5 h-5 rounded flex items-center justify-center shadow cursor-pointer" title="Delete (ລຶບ)"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                </div>
+            `;
 
             // Calculating sequential prefix
             let newPrefix = '';
@@ -1370,7 +1639,7 @@
                 trHTML = `
                     <tr class="sync-row" data-prefix="${newPrefix}" data-ref="${uniqueId}">
                         <td class="editable-cell relative group" contenteditable="true">
-                            ${delBtn} ${filterBtn} ${addBelowRowBtn}
+                            ${rowActionsHtmlGoal}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Goal ${newPrefix}:</span> New Goal</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ເປົ້າໝາຍ ${newPrefix}:</span> ເປົ້າໝາຍໃໝ່</div>
                         </td>
@@ -1393,7 +1662,7 @@
                 ribbonHTML = `
                     <tr class="blue-ribbon" data-parent-ref="${uniqueId}">
                         <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
-                            ${delBtn} ${addBelowRibbonBtn}
+                            ${ribbonActionsHtml}
                             <div class="en-text">Goal ${newPrefix}: New Goal</div>
                             <div class="lao-text">ເປົ້າໝາຍ ${newPrefix}: ເປົ້າໝາຍໃໝ່</div>
                         </td>
@@ -1409,7 +1678,7 @@
                 trHTML = `
                     <tr class="purpose-row sync-row" data-prefix="${newPrefix}" data-ref="${uniqueId}">
                         <td class="editable-cell relative group" contenteditable="true">
-                            ${delBtn} ${filterBtn} ${addBelowRowBtn}
+                            ${rowActionsHtmlPurpose}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">${newPrefix}.</span> New Purpose</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">${newPrefix}.</span> ຈຸດປະສົງໃໝ່</div>
                         </td>
@@ -1438,7 +1707,7 @@
                 ribbonHTML = `
                     <tr class="blue-ribbon level-3-section" data-parent-ref="${uniqueId}">
                         <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
-                            ${delBtn} ${addBelowRibbonBtn}
+                            ${ribbonActionsHtml}
                             <div class="en-text">${newPrefix}. New Purpose</div>
                             <div class="lao-text">${newPrefix}. ຈຸດປະສົງໃໝ່</div>
                         </td>
@@ -1453,7 +1722,7 @@
                 trHTML = `
                     <tr class="output-row sync-row level-3-section" data-prefix="${newPrefix}" data-ref="${uniqueId}">
                         <td class="!bg-white editable-cell relative group" contenteditable="true">
-                            ${delBtn} ${filterBtn} ${addBelowRowBtn}
+                            ${rowActionsHtmlOutput}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Output ${newPrefix}:</span> New Output</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ຜົນໄດ້ຮັບ ${newPrefix}:</span> ຜົນໄດ້ຮັບໃໝ່</div>
                         </td>
@@ -1482,7 +1751,7 @@
                 ribbonHTML = `
                     <tr class="blue-ribbon level-4-section" data-parent-ref="${uniqueId}">
                         <td colspan="4" class="!text-left editable-cell relative group" contenteditable="true">
-                            ${delBtn} ${addBelowRibbonBtn}
+                            ${ribbonActionsHtml}
                             <div class="en-text">Output ${newPrefix}: New Output</div>
                             <div class="lao-text">ຜົນໄດ້ຮັບ ${newPrefix}: ຜົນໄດ້ຮັບໃໝ່</div>
                         </td>
@@ -1497,7 +1766,7 @@
                 trHTML = `
                     <tr class="activity-row level-4-section" data-prefix="${newPrefix}" data-ref="${uniqueId}">
                         <td class="!bg-white editable-cell relative group" contenteditable="true">
-                            ${delBtn} ${addBelowActBtn}
+                            ${rowActionsHtmlActivity}
                             <div class="en-text"><span class="font-bold text-blue-600 mr-1">Act ${newPrefix}:</span> New Activity</div>
                             <div class="lao-text"><span class="font-bold text-blue-600 mr-1">ກິດຈະກຳ ${newPrefix}:</span> ກິດຈະກຳໃໝ່</div>
                         </td>
@@ -1872,58 +2141,85 @@
             
             const targetText = dict[currentLang]['th-target-small'];
             const actualText = dict[currentLang]['th-actual-small'];
-            const yearId = `year-header-${trackingYearCount}`;
+            const notesText = dict[currentLang]['th-yearly-notes'] || 'ບັນທຶກເຫດຜົນ';
+            const yearId = `year-${trackingYearCount}`;
             
             const thT = document.createElement('th');
-            thT.className = 'px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center bg-blue-50 align-top';
+            thT.className = `px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center bg-blue-50 align-top col-year-${yearId}`;
             thT.innerHTML = `
-                <div id="${yearId}-target" class="editable-cell mb-1 pb-1 border-b border-blue-200 text-blue-800" contenteditable="true" title="ກົດເພື່ອປ່ຽນຊື່ປີ" oninput="syncYearHeader('${yearId}', this.innerText, 'target')">Year ${trackingYearCount}</div>
+                <div class="flex justify-between items-center mb-1 pb-1 border-b border-blue-200 text-blue-800">
+                    <div id="${yearId}-target" class="editable-cell flex-1 text-left" contenteditable="true" title="ກົດເພື່ອປ່ຽນຊື່ປີ" oninput="syncYearHeader('${yearId}', this.innerText, 'target')">Year ${trackingYearCount}</div>
+                    <button onclick="hideYear('${yearId}')" class="text-blue-500 hover:text-blue-700 ml-2 hide-on-export" title="ຊ່ອນປີນີ້"><i class="fas fa-eye-slash text-sm drop-shadow-sm"></i></button>
+                </div>
                 <div class="text-[11px] uppercase tracking-wider text-blue-600" data-i18n="th-target-small">${targetText}</div>
             `;
             
             const thA = document.createElement('th');
-            thA.className = 'px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center bg-green-50 align-top';
+            thA.className = `px-4 py-3 font-semibold text-gray-700 border-r w-24 text-center bg-green-50 align-top col-year-${yearId}`;
             thA.innerHTML = `
-                <div id="${yearId}-actual" class="editable-cell mb-1 pb-1 border-b border-green-200 text-green-800" contenteditable="true" title="ກົດເພື່ອປ່ຽນຊື່ປີ" oninput="syncYearHeader('${yearId}', this.innerText, 'actual')">Year ${trackingYearCount}</div>
+                <div class="flex justify-between items-center mb-1 pb-1 border-b border-green-200 text-green-800">
+                    <div id="${yearId}-actual" class="editable-cell flex-1 text-left" contenteditable="true" title="ກົດເພື່ອປ່ຽນຊື່ປີ" oninput="syncYearHeader('${yearId}', this.innerText, 'actual')">Year ${trackingYearCount}</div>
+                </div>
                 <div class="text-[11px] uppercase tracking-wider text-green-600" data-i18n="th-actual-small">${actualText}</div>
+            `;
+
+            const thN = document.createElement('th');
+            thN.className = `px-4 py-3 font-semibold text-gray-700 border-r min-w-[150px] text-left bg-yellow-50 align-top col-notes-${yearId} col-year-${yearId}`;
+            thN.innerHTML = `
+                <div class="flex justify-between items-center mb-1 pb-1 border-b border-yellow-200 text-yellow-800">
+                    <div id="${yearId}-notes" class="editable-cell flex-1 text-left" contenteditable="true" title="ກົດເພື່ອປ່ຽນຊື່ປີ" oninput="syncYearHeader('${yearId}', this.innerText, 'notes')">Year ${trackingYearCount}</div>
+                    <button onclick="hideNotesCol('${yearId}')" class="text-yellow-500 hover:text-yellow-700 ml-2 hide-on-export" title="ຊ່ອນຖັນນີ້"><i class="fas fa-eye-slash text-sm drop-shadow-sm"></i></button>
+                </div>
+                <div class="text-[11px] uppercase tracking-wider text-yellow-600" data-i18n="th-yearly-notes">${notesText}</div>
             `;
 
             theadTr.insertBefore(thT, actualOverallTh);
             theadTr.insertBefore(thA, actualOverallTh);
+            theadTr.insertBefore(thN, actualOverallTh);
 
             const tbody = document.getElementById('tracking-tbody');
             tbody.querySelectorAll('tr').forEach(tr => {
                 if (tr.cells.length === 1 && tr.cells[0].hasAttribute('colspan')) {
                     let cs = parseInt(tr.cells[0].getAttribute('colspan'));
-                    tr.cells[0].setAttribute('colspan', cs + 2);
+                    tr.cells[0].setAttribute('colspan', cs + 3);
                 } 
                 else if (tr.classList.contains('indicator-row-track')) {
                     const actualTd = tr.querySelector('.track-actual');
                     
                     const tdT = document.createElement('td');
-                    tdT.className = `px-4 py-2 border-r text-center editable-cell yearly-target bg-blue-50/30 format-num`;
+                    tdT.className = `px-4 py-2 border-r text-center editable-cell yearly-target bg-blue-50/30 format-num col-year-${yearId}`;
                     tdT.contentEditable = "true";
                     tdT.onblur = function() { formatUnit(this); };
                     
                     const tdA = document.createElement('td');
-                    tdA.className = `px-4 py-2 border-r text-center editable-cell yearly-actual bg-green-50/30 format-num`;
+                    tdA.className = `px-4 py-2 border-r text-center editable-cell yearly-actual bg-green-50/30 format-num col-year-${yearId}`;
                     tdA.contentEditable = "true";
                     tdA.oninput = function() { calcYearlyActuals(this); };
                     tdA.onblur = function() { formatUnit(this); };
 
+                    const tdN = document.createElement('td');
+                    tdN.className = `px-4 py-2 border-r text-sm editable-cell yearly-notes col-notes-${yearId} bg-yellow-50/30 col-year-${yearId}`;
+                    tdN.contentEditable = "true";
+
                     tr.insertBefore(tdT, actualTd);
                     tr.insertBefore(tdA, actualTd);
+                    tr.insertBefore(tdN, actualTd);
                 }
             });
         }
 
         function syncYearHeader(yearId, text, source) {
-            if (source === 'target') {
-                const actualEl = document.getElementById(`${yearId}-actual`);
-                if (actualEl && actualEl.innerText !== text) actualEl.innerText = text;
-            } else {
+            if (source !== 'target') {
                 const targetEl = document.getElementById(`${yearId}-target`);
                 if (targetEl && targetEl.innerText !== text) targetEl.innerText = text;
+            }
+            if (source !== 'actual') {
+                const actualEl = document.getElementById(`${yearId}-actual`);
+                if (actualEl && actualEl.innerText !== text) actualEl.innerText = text;
+            }
+            if (source !== 'notes') {
+                const notesEl = document.getElementById(`${yearId}-notes`);
+                if (notesEl && notesEl.innerText !== text) notesEl.innerText = text;
             }
         }
 
@@ -1963,12 +2259,19 @@
                     const yearlyData = [];
                     const yTargets = tr.querySelectorAll('.yearly-target');
                     const yActuals = tr.querySelectorAll('.yearly-actual');
-                    for(let i=0; i < yTargets.length; i++){
+                    const yNotes = tr.querySelectorAll('.yearly-notes');
+                    for(let i=0; i < trackingYearCount; i++){
                         yearlyData.push({
-                            target: yTargets[i].innerText.trim(),
-                            actual: yActuals[i].innerText.trim()
+                            target: yTargets[i] ? yTargets[i].innerText.trim() : '',
+                            actual: yActuals[i] ? yActuals[i].innerText.trim() : '',
+                            notes: yNotes[i] ? yNotes[i].innerHTML : ''
                         });
                     }
+
+                    let extractedNotes = '';
+                    const notesDiv = tr.querySelector('.notes-content');
+                    if (notesDiv) extractedNotes = notesDiv.innerHTML;
+                    else extractedNotes = tr.cells[tr.cells.length-1].innerHTML;
 
                     existingData[titleKey] = {
                         unitType: tr.querySelector('.unit-type-selector') ? tr.querySelector('.unit-type-selector').value : 'num',
@@ -1977,7 +2280,8 @@
                         actual: tr.querySelector('.track-actual').innerText.trim(),
                         progress: tr.querySelector('.track-progress').innerText.trim(),
                         progressClass: tr.querySelector('.track-progress').className,
-                        notes: tr.cells[tr.cells.length-1].innerHTML,
+                        status: tr.querySelector('.status-selector') ? tr.querySelector('.status-selector').value : 'active',
+                        notes: extractedNotes,
                         yearly: yearlyData
                     };
                 }
@@ -1985,7 +2289,7 @@
 
             trackingTbody.innerHTML = '';
             let hasData = false;
-            const colspanTotal = 7 + (trackingYearCount * 2);
+            const colspanTotal = 7 + (trackingYearCount * 3);
 
             logframeTable.querySelectorAll('tr').forEach(row => {
                 const tbodies = document.querySelectorAll('.logframe-table tbody');
@@ -2025,23 +2329,32 @@
 
                             if (rawIndText) {
                                 const dataKey = rawText.substring(0, 50).replace(/\s/g, '') + '_' + rawIndText.substring(0, 50).replace(/\s/g, '');
-                                const prev = existingData[dataKey] || { unitType: 'num', baseline: '', target: '', actual: '', progress: '-', progressClass: 'px-4 py-2 border-r text-center font-bold text-gray-400 track-progress', notes: '<div class="en-text"></div><div class="lao-text"></div>', yearly: [] };
+                                const prev = existingData[dataKey] || { unitType: 'num', baseline: '', target: '', actual: '', progress: '-', progressClass: 'px-4 py-2 border-r text-center font-bold text-gray-400 track-progress', status: 'active', notes: '<div class="en-text"></div><div class="lao-text"></div>', yearly: [] };
 
                                 let yearlyCellsHtml = '';
                                 for(let i=0; i<trackingYearCount; i++) {
-                                    const yD = prev.yearly[i] || {target: '', actual: ''};
+                                    const yD = prev.yearly[i] || {target: '', actual: '', notes: ''};
+                                    const yearId = `year-${i+1}`;
                                     yearlyCellsHtml += `
-                                        <td class="px-4 py-2 border-r text-center editable-cell yearly-target bg-blue-50/30 format-num" contenteditable="true" onblur="formatUnit(this)">${yD.target}</td>
-                                        <td class="px-4 py-2 border-r text-center editable-cell yearly-actual bg-green-50/30 format-num" contenteditable="true" oninput="calcYearlyActuals(this)" onblur="formatUnit(this)">${yD.actual}</td>
+                                        <td class="px-4 py-2 border-r text-center editable-cell yearly-target bg-blue-50/30 format-num col-year-${yearId}" contenteditable="true" onblur="formatUnit(this)">${yD.target}</td>
+                                        <td class="px-4 py-2 border-r text-center editable-cell yearly-actual bg-green-50/30 format-num col-year-${yearId}" contenteditable="true" oninput="calcYearlyActuals(this)" onblur="formatUnit(this)">${yD.actual}</td>
+                                        <td class="px-4 py-2 border-r text-sm editable-cell yearly-notes col-notes-${yearId} col-year-${yearId} bg-yellow-50/30" contenteditable="true">${yD.notes}</td>
                                     `;
                                 }
 
                                 const trInd = document.createElement('tr');
-                                trInd.className = 'border-b hover:bg-gray-50 transition-colors indicator-row-track';
+                                let rowClass = 'border-b hover:bg-gray-50 transition-colors indicator-row-track';
+                                if (prev.status === 'cancelled') rowClass += ' is-cancelled';
+                                else if (prev.status === 'completed') rowClass += ' is-completed';
+                                
+                                trInd.className = rowClass;
                                 trInd.dataset.key = dataKey;
                                 
                                 trInd.innerHTML = `
-                                    <td class="px-4 py-2 border-r pl-12 text-gray-700">${visibleIndHtml}</td>
+                                    <td class="px-4 py-2 border-r pl-12 text-gray-700 relative group">
+                                        <button onclick="hideSpecificIndicator(this)" contenteditable="false" class="absolute left-4 top-3 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity hide-on-export z-10" title="Hide this row / ຊ່ອນແຖວນີ້"><i class="fas fa-eye-slash text-sm drop-shadow-sm"></i></button>
+                                        ${visibleIndHtml}
+                                    </td>
                                     <td class="px-2 py-2 border-r text-center align-middle bg-gray-50">
                                         <select class="unit-type-selector text-xs bg-white border border-gray-300 rounded p-1 text-gray-700 outline-none focus:border-blue-400 cursor-pointer w-full" onchange="changeUnitType(this)">
                                             <option value="num" ${prev.unitType === 'num' ? 'selected' : ''}>#</option>
@@ -2061,7 +2374,14 @@
                                     ${yearlyCellsHtml}
                                     <td class="px-4 py-2 border-r text-center editable-cell track-actual format-num font-bold bg-purple-50/50" contenteditable="true" oninput="calcProgress(this)" onblur="formatUnit(this)">${prev.actual}</td>
                                     <td class="${prev.progressClass}">${prev.progress}</td>
-                                    <td class="px-4 py-2 editable-cell" contenteditable="true">${prev.notes}</td>
+                                    <td class="px-2 py-2 relative align-top">
+                                        <select class="status-selector text-[11px] w-full border border-gray-300 rounded p-1 mb-1 outline-none focus:border-blue-400 bg-white" onchange="applyIndicatorStatus(this)">
+                                            <option value="active" ${prev.status === 'active' ? 'selected' : ''}>Active / ພວມປະຕິບັດ</option>
+                                            <option value="completed" ${prev.status === 'completed' ? 'selected' : ''}>Completed / ສຳເລັດ</option>
+                                            <option value="cancelled" ${prev.status === 'cancelled' ? 'selected' : ''}>Cancelled / ຍົກເລີກ</option>
+                                        </select>
+                                        <div class="notes-content editable-cell p-1 min-h-[2.5em] border border-transparent hover:border-gray-300 rounded" contenteditable="true">${prev.notes}</div>
+                                    </td>
                                 `;
                                 trackingTbody.appendChild(trInd);
                                 hasData = true;
@@ -2106,6 +2426,66 @@
             }
         }
 
+        function applyIndicatorStatus(select) {
+            const tr = select.closest('tr');
+            tr.classList.remove('is-cancelled', 'is-completed');
+            if (select.value === 'cancelled') {
+                tr.classList.add('is-cancelled');
+            } else if (select.value === 'completed') {
+                tr.classList.add('is-completed');
+            }
+        }
+
+        let hideArchived = false;
+        function toggleArchivedTracking() {
+            hideArchived = !hideArchived;
+            const tbody = document.getElementById('tracking-tbody');
+            const btnSpan = document.querySelector('#btn-toggle-archived span');
+            const btnIcon = document.querySelector('#btn-toggle-archived i');
+            
+            if (hideArchived) {
+                tbody.classList.add('hide-archived');
+                btnIcon.className = 'fas fa-eye mr-1';
+                btnSpan.setAttribute('data-i18n', 'btn-show-archive');
+            } else {
+                tbody.classList.remove('hide-archived');
+                btnIcon.className = 'fas fa-eye-slash mr-1';
+                btnSpan.setAttribute('data-i18n', 'btn-toggle-archive');
+            }
+            setLanguage(currentLang);
+        }
+
+        function hideSpecificIndicator(btn) {
+            const tr = btn.closest('tr');
+            tr.classList.add('user-hidden');
+            document.getElementById('btn-show-all-hidden').classList.remove('hidden');
+        }
+
+        function showAllHiddenIndicators() {
+            document.querySelectorAll('.user-hidden').forEach(tr => tr.classList.remove('user-hidden'));
+            document.getElementById('btn-show-all-hidden').classList.add('hidden');
+        }
+
+        function hideNotesCol(yearId) {
+            document.querySelectorAll(`.col-notes-${yearId}`).forEach(el => el.classList.add('hidden'));
+            document.getElementById('btn-unhide-cols').classList.remove('hidden');
+        }
+
+        function unhideAllNotesCols() {
+            document.querySelectorAll('[class*="col-notes-"]').forEach(el => el.classList.remove('hidden'));
+            document.getElementById('btn-unhide-cols').classList.add('hidden');
+        }
+
+        function hideYear(yearId) {
+            document.querySelectorAll(`.col-year-${yearId}`).forEach(el => el.classList.add('hidden'));
+            document.getElementById('btn-unhide-years').classList.remove('hidden');
+        }
+
+        function unhideAllYears() {
+            document.querySelectorAll('[class*="col-year-"]').forEach(el => el.classList.remove('hidden'));
+            document.getElementById('btn-unhide-years').classList.add('hidden');
+        }
+
         // Global Bindings for HTML onclick listeners
         window.setLanguage = setLanguage;
         window.saveAsHTML = saveAsHTML;
@@ -2133,13 +2513,26 @@
         window.openExportModal = openExportModal;
         window.closeExportModal = closeExportModal;
         window.confirmExport = confirmExport;
+        window.exportPDF = exportPDF;
+        window.syncDashboard = syncDashboard;
         window.saveToCache = saveToCache;
         window.loadFromCache = loadFromCache;
         window.filterByGoal = filterByGoal;
         window.clearFilter = clearFilter;
+        window.applyIndicatorStatus = applyIndicatorStatus;
+        window.toggleArchivedTracking = toggleArchivedTracking;
+        window.hideSpecificIndicator = hideSpecificIndicator;
+        window.showAllHiddenIndicators = showAllHiddenIndicators;
+        window.hideNotesCol = hideNotesCol;
+        window.unhideAllNotesCols = unhideAllNotesCols;
+        window.hideYear = hideYear;
+        window.unhideAllYears = unhideAllYears;
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
+            // Disable native browser object resizing (removes black dots in Firefox)
+            try { document.execCommand("enableObjectResizing", false, false); } catch(e) {}
+            
             // Inject delete buttons to existing static list-items to avoid massive HTML diff
             document.querySelectorAll('.list-item').forEach(item => {
                 if (!item.classList.contains('group/item')) {
@@ -2148,7 +2541,7 @@
                     delBtn.onclick = function() { deleteListItem(this); };
                     delBtn.onmousedown = function(e) { e.stopPropagation(); };
                     delBtn.contentEditable = "false";
-                    delBtn.className = "absolute top-1 right-1 bg-red-400 hover:bg-red-500 text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-10 shadow cursor-pointer hide-on-export";
+                    delBtn.className = "absolute top-1 right-1 text-red-400 hover:bg-red-500 hover:text-white w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-colors z-10 cursor-pointer hide-on-export";
                     delBtn.title = "Delete";
                     delBtn.innerHTML = '<i class="fas fa-times text-[10px]"></i>';
                     item.insertBefore(delBtn, item.firstChild);
