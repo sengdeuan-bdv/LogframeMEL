@@ -21,7 +21,7 @@
         .table-container::-webkit-scrollbar-thumb, .planning-table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .table-container::-webkit-scrollbar-thumb:hover, .planning-table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        .logframe-table th, .tracking-table th, .planning-table th, .budget-table th {
+        .logframe-table th, .tracking-table th, .planning-table th, .budget-table th, .risk-table th {
             background-color: #d1d5db;
             color: #374151;
             font-weight: 600;
@@ -36,7 +36,7 @@
         .planning-table th.first-row { z-index: 20; top: 0; }
         .planning-table th.second-row { z-index: 10; top: 38px; }
 
-        .logframe-table td, .tracking-table td, .planning-table td, .budget-table td {
+        .logframe-table td, .tracking-table td, .planning-table td, .budget-table td, .risk-table td {
             background-color: #f3f4f6;
             border: 1px solid #9ca3af;
             padding: 8px 12px;
@@ -88,6 +88,15 @@
         /* Level Visibility Styles */
         body.show-levels-3 .level-4-section { display: none !important; }
         body.show-levels-2 .level-3-section, body.show-levels-2 .level-4-section { display: none !important; }
+        
+        /* Export Specific Styles */
+        .export-snapshot { background: white !important; font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif !important; }
+        .export-snapshot .tab-content { display: block !important; padding: 20px !important; margin-bottom: 20px; page-break-after: always; }
+        .export-snapshot table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed; }
+        .export-snapshot th, .export-snapshot td { word-wrap: break-word; white-space: normal; }
+        .export-snapshot .planning-table-container, .export-snapshot .table-container { overflow: visible !important; }
+        .export-snapshot input, .export-snapshot select { display: none !important; }
+        .export-static-value { display: inline-block; width: 100%; word-wrap: break-word; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -108,62 +117,8 @@
         </div>
         
         <div class="flex items-center gap-4 bg-white p-2 rounded shadow-sm overflow-x-auto">
-            <!-- SAVE ACTIONS -->
-            <div class="flex items-center gap-2 border-r pr-3">
-                <button onclick="saveAsHTML()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກໜ້ານີ້ໄວ້ແກ້ໄຂຕໍ່ (HTML)">
-                    <i class="fas fa-save text-lg text-blue-600 mb-1"></i> <span data-i18n="btn-save-html">Save HTML</span>
-                </button>
-                <button onclick="saveAsJSON()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຂໍ້ມູນເປັນ JSON">
-                    <i class="fas fa-file-code text-lg text-purple-600 mb-1"></i> <span data-i18n="btn-json">JSON</span>
-                </button>
-                <button onclick="saveToCache()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຊົ່ວຄາວໃນແຄສ (Cloud/Firestore) [Ctrl+Shift+V ຫຼື Ctrl+S]">
-                    <i class="fas fa-cloud-upload-alt text-lg text-emerald-600 mb-1"></i> <span data-i18n="btn-quick-save">Quick Save</span>
-                </button>
-                <button onclick="loadFromCache(true)" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ດຶງຂໍ້ມູນຄືນຈາກແຄສ">
-                    <i class="fas fa-cloud-download-alt text-lg text-sky-600 mb-1"></i> <span data-i18n="btn-restore-cache">Restore</span>
-                </button>
-            </div>
-
-            <!-- IMPORT ACTIONS -->
-            <div class="flex items-center gap-2 border-r pr-3">
-                <button onclick="document.getElementById('importJsonInput').click()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ນຳເຂົ້າໄຟລ໌ JSON">
-                    <i class="fas fa-file-import text-lg text-orange-600 mb-1"></i> <span data-i18n="btn-import">Import</span>
-                </button>
-                <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importJSON(event)">
-            </div>
-
-            <!-- EXPORT ACTIONS -->
-            <div class="flex items-center gap-2 border-r pr-3">
-                <button onclick="openExportModal('excel')" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ສົ່ງອອກເປັນ Excel">
-                    <i class="fas fa-file-excel text-lg text-green-600 mb-1"></i> <span data-i18n="btn-excel">Excel</span>
-                </button>
-                <button onclick="openExportModal('word')" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ສົ່ງອອກເປັນ Word">
-                    <i class="fas fa-file-word text-lg text-blue-800 mb-1"></i> <span data-i18n="btn-word">Word</span>
-                </button>
-            </div>
-
-            <!-- FORMATTING ACTIONS -->
-            <div class="flex items-center gap-2 border-r pr-3">
-                <button onclick="pasteValue()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ວາງສະເພາະຂໍ້ຄວາມ (Paste Plain Text) ຫຼື ກົດ Ctrl+Shift+V">
-                    <i class="fas fa-clipboard text-lg text-gray-600 mb-1"></i> <span data-i18n="btn-paste">Paste Value</span>
-                </button>
-                <select id="fontFamily" onchange="execCmd('fontName', this.value)" class="text-sm border border-gray-300 rounded p-1 text-gray-700 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
-                    <option value="'Phetsarath OT', sans-serif">Phetsarath OT</option>
-                    <option value="'Noto Sans Lao', sans-serif">Noto Sans Lao</option>
-                    <option value="Arial, sans-serif">Arial</option>
-                    <option value="'Times New Roman', serif">Times New Roman</option>
-                </select>
-                <div class="flex items-center border border-gray-300 rounded overflow-hidden h-8 bg-gray-50" title="ເລືອກສີຕົວໜັງສື">
-                    <input type="color" id="fontColor" onchange="execCmd('foreColor', this.value)" class="w-8 h-8 p-0 border-0 cursor-pointer" value="#000000">
-                </div>
-                <div class="flex bg-gray-50 rounded border border-gray-300 h-8 items-center">
-                    <button onclick="execCmd('bold')" class="w-8 h-full hover:bg-gray-200 text-gray-700 font-bold border-r border-gray-300">B</button>
-                    <button onclick="execCmd('italic')" class="w-8 h-full hover:bg-gray-200 text-gray-700 italic border-r border-gray-300">I</button>
-                    <button onclick="execCmd('underline')" class="w-8 h-full hover:bg-gray-200 text-gray-700 underline">U</button>
-                </div>
-            </div>
-
-            <div class="flex gap-2">
+            <!-- NAVIGATION TABS (MOVED TO FRONT) -->
+            <div class="flex gap-2 border-r pr-3 border-gray-200">
                 <button onclick="switchTab('project')" id="btn-project" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
                     <i class="fas fa-folder-open text-yellow-500 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-project">Project</span>
                 </button>
@@ -179,12 +134,58 @@
                 <button onclick="switchTab('budget')" id="btn-budget" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
                     <i class="fas fa-file-invoice-dollar text-green-700 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-budget">Budget</span>
                 </button>
+                <!-- NEW RISK TAB BUTTON -->
+                <button onclick="switchTab('risk')" id="btn-risk" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
+                    <i class="fas fa-exclamation-triangle text-orange-500 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-risk">Risk</span>
+                </button>
                 <button onclick="switchTab('tracking')" id="btn-tracking" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent">
                     <i class="fas fa-chart-line text-purple-600 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-tracking">Tracking</span>
                 </button>
                 <button onclick="switchTab('settings')" id="btn-settings" class="tab-btn flex flex-col items-center justify-center p-2 rounded hover:bg-blue-100 min-w-[70px] border border-transparent ml-2 border-l-2">
                     <i class="fas fa-cog text-gray-500 text-xl mb-1"></i> <span class="text-xs font-medium text-gray-700" data-i18n="tab-settings">Settings</span>
                 </button>
+            </div>
+
+            <!-- SAVE & IMPORT ACTIONS -->
+            <div class="flex items-center gap-2 border-r pr-3">
+                <button onclick="saveAsJSON()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຂໍ້ມູນເປັນ JSON">
+                    <i class="fas fa-file-code text-lg text-purple-600 mb-1"></i> <span data-i18n="btn-json">JSON</span>
+                </button>
+                <button onclick="document.getElementById('importJsonInput').click()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ນຳເຂົ້າໄຟລ໌ JSON">
+                    <i class="fas fa-file-import text-lg text-orange-600 mb-1"></i> <span data-i18n="btn-import">Import</span>
+                </button>
+                <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importJSON(event)">
+                <button onclick="saveToCache()" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ບັນທຶກຊົ່ວຄາວໃນແຄສ (Cloud/Firestore) [Ctrl+Shift+V ຫຼື Ctrl+S]">
+                    <i class="fas fa-cloud-upload-alt text-lg text-emerald-600 mb-1"></i> <span data-i18n="btn-quick-save">Quick Save</span>
+                </button>
+                <button onclick="loadFromCache(true)" class="p-1 hover:bg-gray-100 rounded text-gray-700 flex flex-col items-center text-[10px]" title="ດຶງຂໍ້ມູນຄືນຈາກແຄສ">
+                    <i class="fas fa-cloud-download-alt text-lg text-sky-600 mb-1"></i> <span data-i18n="btn-restore-cache">Restore</span>
+                </button>
+            </div>
+
+            <!-- NEW CONSOLIDATED EXPORT ACTION -->
+            <div class="flex items-center gap-2 border-r pr-3">
+                <button onclick="openExportModal()" class="p-2 hover:bg-blue-100 bg-white border border-blue-300 rounded text-blue-800 flex flex-col items-center text-[10px] shadow-sm font-bold w-[70px]" title="ສົ່ງອອກເອກະສານ">
+                    <i class="fas fa-file-export text-xl text-blue-600 mb-1"></i> <span data-i18n="btn-export-main">Export</span>
+                </button>
+            </div>
+
+            <!-- FORMATTING ACTIONS -->
+            <div class="flex items-center gap-2">
+                <select id="fontFamily" onchange="execCmd('fontName', this.value)" class="text-sm border border-gray-300 rounded p-1 text-gray-700 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
+                    <option value="'Phetsarath OT', sans-serif">Phetsarath OT</option>
+                    <option value="'Noto Sans Lao', sans-serif">Noto Sans Lao</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                </select>
+                <div class="flex items-center border border-gray-300 rounded overflow-hidden h-8 bg-gray-50" title="ເລືອກສີຕົວໜັງສື">
+                    <input type="color" id="fontColor" onchange="execCmd('foreColor', this.value)" class="w-8 h-8 p-0 border-0 cursor-pointer" value="#000000">
+                </div>
+                <div class="flex bg-gray-50 rounded border border-gray-300 h-8 items-center">
+                    <button onclick="execCmd('bold')" class="w-8 h-full hover:bg-gray-200 text-gray-700 font-bold border-r border-gray-300">B</button>
+                    <button onclick="execCmd('italic')" class="w-8 h-full hover:bg-gray-200 text-gray-700 italic border-r border-gray-300">I</button>
+                    <button onclick="execCmd('underline')" class="w-8 h-full hover:bg-gray-200 text-gray-700 underline">U</button>
+                </div>
             </div>
         </div>
     </div>
@@ -344,7 +345,7 @@
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative">
                                 <div class="flex items-center justify-center gap-2">
                                     <span data-i18n="th-goals">Goals</span>
-                                    <button onclick="addLogframeRow('goal')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm flex items-center justify-center transition-colors text-xs font-normal" title="Add Goal"><i class="fas fa-plus mr-1"></i> ໝວດໃໝ່ (Row)</button>
+                                    <button onclick="addLogframeRow('goal')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm flex items-center justify-center transition-colors text-xs font-normal hide-on-export" title="Add Goal"><i class="fas fa-plus mr-1"></i> ໝວດໃໝ່ (Row)</button>
                                 </div>
                             </th>
                             <th class="!bg-gray-400 !text-white font-bold text-lg relative group/th col-lf-ind">
@@ -679,6 +680,48 @@
             </div>
         </div>
 
+        <!-- RISK TAB -->
+        <div id="tab-risk" class="tab-content hidden w-full h-full p-6 flex flex-col relative">
+            <div class="flex justify-between items-end mb-4 border-b pb-2 shrink-0 bg-white">
+                <h2 class="text-2xl font-bold text-gray-800" data-i18n="tab-risk">Risk Management</h2>
+                <button onclick="addRiskRow()" class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1.5 rounded hover:bg-orange-100 transition-colors shadow-sm text-sm font-medium hide-on-export">
+                    <i class="fas fa-plus mr-1"></i> <span data-i18n="btn-add-risk">Add Risk Row</span>
+                </button>
+            </div>
+            <div class="table-container flex-1 overflow-auto bg-white border rounded-lg shadow-sm">
+                <table class="min-w-full text-sm text-left risk-table border-collapse">
+                    <thead class="bg-orange-50 border-b">
+                        <tr>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-[5%]" style="text-align:center;">#</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-[30%]" data-i18n="th-risk-desc">Risk Description</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-[15%] text-center" data-i18n="th-risk-level">Level</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-[35%]" data-i18n="th-mitigation">Mitigation Strategy</th>
+                            <th class="px-4 py-3 font-semibold text-gray-700 border-r w-[15%]" data-i18n="th-responsible">Responsible</th>
+                            <th class="px-2 py-3 w-[5%] hide-on-export"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="risk-tbody" class="divide-y">
+                        <tr class="hover:bg-gray-50 group/row">
+                            <td class="px-4 py-2 border-r text-center font-medium row-num">1</td>
+                            <td class="px-4 py-2 border-r editable-cell" contenteditable="true"><div class="en-text">Example Risk</div><div class="lao-text">ຄວາມສ່ຽງຕົວຢ່າງ</div></td>
+                            <td class="px-4 py-2 border-r text-center align-middle">
+                                <select class="text-xs border border-orange-300 bg-orange-50 text-orange-700 font-bold rounded p-1 w-full outline-none cursor-pointer risk-level-select" onchange="updateRiskColor(this)">
+                                    <option value="high" data-i18n="opt-high">High</option>
+                                    <option value="medium" data-i18n="opt-medium" selected>Medium</option>
+                                    <option value="low" data-i18n="opt-low">Low</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-2 border-r editable-cell" contenteditable="true"><div class="en-text">Mitigation plan...</div><div class="lao-text">ແຜນຮັບມື...</div></td>
+                            <td class="px-4 py-2 border-r editable-cell" contenteditable="true">PM</td>
+                            <td class="px-2 py-2 text-center hide-on-export">
+                                <button onclick="deleteRiskRow(this)" class="text-red-400 hover:text-red-600 opacity-0 group-hover/row:opacity-100 transition-opacity"><i class="fas fa-trash-alt"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- TRACKING TAB -->
         <div id="tab-tracking" class="tab-content hidden w-full h-full p-6 flex flex-col relative">
             <div class="flex justify-between items-end mb-4 border-b pb-2 shrink-0 bg-white">
@@ -728,36 +771,72 @@
 
     </div>
 
-    <!-- Export Options Modal -->
+    <!-- Export Options Modal (REDESIGNED) -->
     <div id="export-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-[400px]">
-            <h3 class="text-lg font-bold mb-2 text-gray-800" data-i18n="lbl-export-options">Export Options</h3>
-            <p class="text-sm text-gray-600 mb-6" data-i18n="desc-export-options">Select how you want to export the data:</p>
-            <div class="flex flex-col gap-3">
-                <button onclick="confirmExport('pdf')" class="w-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 py-3 px-4 rounded text-left flex items-center transition-colors hide-on-export">
-                    <i class="fas fa-file-pdf w-8 text-center text-xl mr-2"></i>
-                    <div>
-                        <div class="font-bold" data-i18n="btn-export-pdf">Export as PDF</div>
-                        <div class="text-xs font-normal text-red-600 mt-1" data-i18n="desc-export-pdf">Download viewable document</div>
-                    </div>
-                </button>
-                <button onclick="confirmExport('format')" class="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 py-3 px-4 rounded text-left flex items-center transition-colors">
-                    <i class="fas fa-paint-roller w-8 text-center text-xl mr-2"></i>
-                    <div>
-                        <div class="font-bold" data-i18n="btn-export-format">With Formatting</div>
-                        <div class="text-xs font-normal text-blue-600 mt-1" data-i18n="desc-export-format">Keep colors, bold text, and layout</div>
-                    </div>
-                </button>
-                <button onclick="confirmExport('raw')" class="w-full bg-gray-50 hover:bg-gray-100 border border-gray-300 text-gray-700 py-3 px-4 rounded text-left flex items-center transition-colors">
-                    <i class="fas fa-table w-8 text-center text-xl mr-2 text-gray-500"></i>
-                    <div>
-                        <div class="font-bold" data-i18n="btn-export-raw">Raw Data Only</div>
-                        <div class="text-xs font-normal text-gray-500 mt-1" data-i18n="desc-export-raw">Plain text without colors</div>
-                    </div>
-                </button>
+        <div class="bg-white rounded-xl shadow-2xl w-[500px] flex flex-col overflow-hidden">
+            <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
+                <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-file-export"></i> <span data-i18n="lbl-export-title">Export Options</span></h3>
+                <button onclick="closeExportModal()" class="text-white hover:text-gray-200 text-xl">&times;</button>
             </div>
-            <div class="mt-6 flex justify-end">
-                <button onclick="closeExportModal()" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-medium transition-colors" data-i18n="btn-cancel">Cancel</button>
+            
+            <div class="p-6">
+                <!-- Scope Selection -->
+                <div class="mb-6">
+                    <h4 class="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide border-b pb-1" data-i18n="lbl-export-scope">1. Select Scope (ເລືອກຂໍ້ມູນທີ່ຈະສົ່ງອອກ)</h4>
+                    <div class="flex gap-4">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="export-scope" value="current" class="peer hidden" checked>
+                            <div class="border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 p-3 rounded-lg text-center transition-all">
+                                <i class="fas fa-file text-2xl mb-2 text-gray-400 peer-checked:text-blue-500 block"></i>
+                                <div class="font-bold text-sm text-gray-800" data-i18n="lbl-scope-current">Current Tab Only</div>
+                                <div class="text-[10px] text-gray-500 mt-1" data-i18n="desc-scope-current">ໜ້າທີ່ກຳລັງເປີດຢູ່</div>
+                            </div>
+                        </label>
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="export-scope" value="all" class="peer hidden">
+                            <div class="border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 p-3 rounded-lg text-center transition-all">
+                                <i class="fas fa-copy text-2xl mb-2 text-gray-400 peer-checked:text-blue-500 block"></i>
+                                <div class="font-bold text-sm text-gray-800" data-i18n="lbl-scope-all">All Project Data</div>
+                                <div class="text-[10px] text-gray-500 mt-1" data-i18n="desc-scope-all">ທຸກໜ້າວຽກຂອງໂຄງການ</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Format Selection -->
+                <div>
+                    <h4 class="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide border-b pb-1" data-i18n="lbl-export-format">2. Select Format (ເລືອກປະເພດໄຟລ໌)</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="executeExport('pdf')" class="bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 py-3 px-4 rounded-lg text-left flex items-center transition-colors">
+                            <i class="fas fa-file-pdf w-8 text-center text-2xl mr-2"></i>
+                            <div>
+                                <div class="font-bold">PDF Document</div>
+                                <div class="text-[10px] font-normal text-red-600 mt-0.5">A4 Landscape</div>
+                            </div>
+                        </button>
+                        <button onclick="executeExport('excel')" class="bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 py-3 px-4 rounded-lg text-left flex items-center transition-colors">
+                            <i class="fas fa-file-excel w-8 text-center text-2xl mr-2"></i>
+                            <div>
+                                <div class="font-bold">Excel (XLS)</div>
+                                <div class="text-[10px] font-normal text-green-600 mt-0.5">With formatting</div>
+                            </div>
+                        </button>
+                        <button onclick="executeExport('word')" class="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 py-3 px-4 rounded-lg text-left flex items-center transition-colors">
+                            <i class="fas fa-file-word w-8 text-center text-2xl mr-2"></i>
+                            <div>
+                                <div class="font-bold">Word (DOC)</div>
+                                <div class="text-[10px] font-normal text-blue-600 mt-0.5">For offline editing</div>
+                            </div>
+                        </button>
+                        <button onclick="executeExport('html')" class="bg-gray-50 hover:bg-gray-100 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg text-left flex items-center transition-colors">
+                            <i class="fas fa-code w-8 text-center text-2xl mr-2 text-gray-500"></i>
+                            <div>
+                                <div class="font-bold">Webpage (HTML)</div>
+                                <div class="text-[10px] font-normal text-gray-500 mt-0.5">View in browser</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -774,11 +853,11 @@
         const dict = {
             'en': {
                 'menu-project': 'Project',
-                'tab-project': 'Project', 'tab-logframe': 'Logframe', 'tab-tracking': 'Tracking', 'tab-planning': 'Planning', 'tab-budget': 'Budget', 'tab-settings': 'Settings', 'tab-dashboard': 'Dashboard',
+                'tab-project': 'Project', 'tab-logframe': 'Logframe', 'tab-tracking': 'Tracking', 'tab-planning': 'Planning', 'tab-budget': 'Budget', 'tab-risk': 'Risk Mgt', 'tab-settings': 'Settings', 'tab-dashboard': 'Dashboard',
                 'btn-save-html': 'Save HTML', 'btn-json': 'JSON', 'btn-import': 'Import', 'btn-excel': 'Excel', 'btn-word': 'Word',
                 'btn-add': 'Add', 'btn-sync': 'Sync from Logframe', 'btn-add-year': 'Add Year', 'btn-sync-dash': 'Refresh Data',
-                'btn-add-goal': 'Add Goal', 'btn-add-purpose': 'Add Purpose', 'btn-add-output': 'Add Output', 'btn-add-activity': 'Add Activity',
-                'btn-quick-save': 'Quick Save', 'btn-restore-cache': 'Restore', 'btn-paste': 'Paste Value',
+                'btn-add-goal': 'Add Goal', 'btn-add-purpose': 'Add Purpose', 'btn-add-output': 'Add Output', 'btn-add-activity': 'Add Activity', 'btn-add-risk': 'Add Risk Row',
+                'btn-quick-save': 'Quick Save', 'btn-restore-cache': 'Restore',
                 'lbl-proj-info': 'Project Information', 'lbl-proj-title': 'Project Title', 'lbl-proj-code': 'Project Code', 'lbl-proj-desc': 'Description',
                 'lbl-custom-headers': 'Customize Logframe Headers', 'desc-custom-headers': 'Change the default terms for the logical framework levels to match your project\'s specific terminology.',
                 'lbl-level': 'Level', 'lbl-en': 'English (EN)', 'lbl-lo': 'Lao (LA)',
@@ -786,6 +865,8 @@
                 'th-goals': 'Goals', 'th-purposes': 'Purposes', 'th-outputs': 'Outputs', 'th-activities': 'Activities',
                 'th-indicators': 'Indicators', 'th-verification': 'Verification sources', 'th-assumptions': 'Assumptions',
                 'th-resources': 'Resources', 'th-budget': 'Budget', 'th-responsible': 'Responsible',
+                'th-risk-desc': 'Risk Description', 'th-risk-level': 'Level', 'th-mitigation': 'Mitigation Strategy',
+                'opt-high': 'High', 'opt-medium': 'Medium', 'opt-low': 'Low',
                 'th-hierarchy': 'Hierarchy / Indicator', 'th-baseline': 'Baseline', 'th-target': 'Target', 'th-actual': 'Actual Progress', 'th-progress': 'Progress (%)', 'th-status': 'Status',
                 'th-target-overall': 'Overall Target', 'th-actual-overall': 'Overall Actual',
                 'th-target-small': 'Target', 'th-actual-small': 'Actual',
@@ -796,13 +877,12 @@
                 'opt-weekly': 'Weekly',
                 'lbl-timeline-from': 'Timeline From:', 'lbl-to': 'To:',
                 'opt-pending': 'Not Started', 'opt-progress': 'In Progress', 'opt-completed': 'Completed', 'opt-delayed': 'Delayed',
-                'lbl-export-options': 'Export Options',
-                'desc-export-options': 'Select how you want to export the data:',
-                'btn-export-pdf': 'Export as PDF', 'desc-export-pdf': 'Download viewable document',
-                'btn-export-format': 'With Formatting',
-                'desc-export-format': 'Keep colors, bold text, and layout (.xls / .doc)',
-                'btn-export-raw': 'Raw Data Only',
-                'desc-export-raw': 'Plain text without colors (.xlsx / .doc)',
+                'btn-export-main': 'Export',
+                'lbl-export-title': 'Export Documents',
+                'lbl-export-scope': '1. Select Scope',
+                'lbl-scope-current': 'Current Tab Only', 'desc-scope-current': 'Export what you see',
+                'lbl-scope-all': 'All Project Data', 'desc-scope-all': 'Project, Logframe, Plan, Budget, Risk, Track',
+                'lbl-export-format': '2. Select Format',
                 'btn-cancel': 'Cancel',
                 'lbl-ready': 'Ready',
                 'lbl-filtering': 'Filtering by:',
@@ -824,11 +904,11 @@
             },
             'lo': {
                 'menu-project': 'ໂຄງການ',
-                'tab-project': 'ໂຄງການ', 'tab-logframe': 'Logframe', 'tab-tracking': 'ຕິດຕາມຕົວຊີ້ວັດ', 'tab-planning': 'ແຜນວຽກ', 'tab-budget': 'ງົບປະມານ', 'tab-settings': 'ຕັ້ງຄ່າ', 'tab-dashboard': 'ແຜງຄວບຄຸມ',
+                'tab-project': 'ໂຄງການ', 'tab-logframe': 'Logframe', 'tab-tracking': 'ຕິດຕາມຕົວຊີ້ວັດ', 'tab-planning': 'ແຜນວຽກ', 'tab-budget': 'ງົບປະມານ', 'tab-risk': 'ຈັດການຄວາມສ່ຽງ', 'tab-settings': 'ຕັ້ງຄ່າ', 'tab-dashboard': 'ແຜງຄວບຄຸມ',
                 'btn-save-html': 'ບັນທຶກ HTML', 'btn-json': 'JSON', 'btn-import': 'ນຳເຂົ້າ', 'btn-excel': 'Excel', 'btn-word': 'Word',
                 'btn-add': 'ເພີ່ມ', 'btn-sync': 'ດຶງຂໍ້ມູນຈາກ Logframe', 'btn-add-year': 'ເພີ່ມປີ', 'btn-sync-dash': 'ອັບເດດຂໍ້ມູນ',
-                'btn-add-goal': 'ເພີ່ມເປົ້າໝາຍ', 'btn-add-purpose': 'ເພີ່ມຈຸດປະສົງ', 'btn-add-output': 'ເພີ່ມຜົນໄດ້ຮັບ', 'btn-add-activity': 'ເພີ່ມກິດຈະກຳ',
-                'btn-quick-save': 'ບັນທຶກດ່ວນ', 'btn-restore-cache': 'ດຶງຂໍ້ມູນຄືນ', 'btn-paste': 'ວາງຂໍ້ຄວາມ',
+                'btn-add-goal': 'ເພີ່ມເປົ້າໝາຍ', 'btn-add-purpose': 'ເພີ່ມຈຸດປະສົງ', 'btn-add-output': 'ເພີ່ມຜົນໄດ້ຮັບ', 'btn-add-activity': 'ເພີ່ມກິດຈະກຳ', 'btn-add-risk': 'ເພີ່ມຄວາມສ່ຽງ',
+                'btn-quick-save': 'ບັນທຶກດ່ວນ', 'btn-restore-cache': 'ດຶງຂໍ້ມູນຄືນ',
                 'lbl-proj-info': 'ຂໍ້ມູນໂຄງການ', 'lbl-proj-title': 'ຊື່ໂຄງການ', 'lbl-proj-code': 'ລະຫັດໂຄງການ', 'lbl-proj-desc': 'ລາຍລະອຽດ',
                 'lbl-custom-headers': 'ຕັ້ງຄ່າຊື່ຫົວຂໍ້ຫຼັກ', 'desc-custom-headers': 'ປັບປ່ຽນຄຳສັບມາດຕະຖານຂອງໂຄງສ້າງ Logframe ໃຫ້ກົງກັບໂຄງການຂອງທ່ານ (ຕົວຢ່າງ: ປ່ຽນ ຈຸດປະສົງ ເປັນ ຜົນໄດ້ຮັບຫຼັກ).',
                 'lbl-level': 'ລະດັບຊັ້ນ', 'lbl-en': 'ພາສາອັງກິດ (EN)', 'lbl-lo': 'ພາສາລາວ (LA)',
@@ -836,6 +916,8 @@
                 'th-goals': 'ເປົ້າໝາຍ (Goals)', 'th-purposes': 'ຈຸດປະສົງ (Purposes)', 'th-outputs': 'ຜົນໄດ້ຮັບ (Outputs)', 'th-activities': 'ກິດຈະກຳ (Activities)',
                 'th-indicators': 'ຕົວຊີ້ວັດ (Indicators)', 'th-verification': 'ແຫຼ່ງຢັ້ງຢືນ (Verification)', 'th-assumptions': 'ຂໍ້ສົມມຸດຕິຖານ (Assumptions)',
                 'th-resources': 'ຊັບພະຍາກອນ (Resources)', 'th-budget': 'ງົບປະມານ (Budget)', 'th-responsible': 'ຜູ້ຮັບຜິດຊອບ',
+                'th-risk-desc': 'ລາຍລະອຽດຄວາມສ່ຽງ', 'th-risk-level': 'ລະດັບ', 'th-mitigation': 'ມາດຕະການຫຼຸດຜ່ອນ',
+                'opt-high': 'ສູງ', 'opt-medium': 'ປານກາງ', 'opt-low': 'ຕໍ່າ',
                 'th-hierarchy': 'ໂຄງສ້າງ / ຕົວຊີ້ວັດ', 'th-baseline': 'ຄ່າພື້ນຖານ', 'th-target': 'ເປົ້າໝາຍ', 'th-actual': 'ຜົນຕົວຈິງ', 'th-progress': 'ຄວາມຄືບໜ້າ', 'th-status': 'ສະຖານະ',
                 'th-target-overall': 'ເປົ້າໝາຍລວມ', 'th-actual-overall': 'ຜົນລວມຕົວຈິງ',
                 'th-target-small': 'ເປົ້າໝາຍ', 'th-actual-small': 'ຜົນຕົວຈິງ',
@@ -846,13 +928,12 @@
                 'opt-weekly': 'ລາຍອາທິດ',
                 'lbl-timeline-from': 'ໄລຍະເວລາ ຈາກ:', 'lbl-to': 'ຫາ:',
                 'opt-pending': 'ຍັງບໍ່ເລີ່ມ', 'opt-progress': 'ພວມຈັດຕັ້ງປະຕິບັດ', 'opt-completed': 'ສຳເລັດ', 'opt-delayed': 'ລ່າຊ້າ',
-                'lbl-export-options': 'ຕົວເລືອກການສົ່ງອອກ',
-                'desc-export-options': 'ກະລຸນາເລືອກຮູບແບບທີ່ທ່ານຕ້ອງການສົ່ງອອກ:',
-                'btn-export-pdf': 'ສົ່ງອອກເປັນ PDF', 'desc-export-pdf': 'ດາວໂຫຼດໄຟລ໌ PDF',
-                'btn-export-format': 'ສົ່ງອອກພ້ອມຮູບແບບ',
-                'desc-export-format': 'ຮັກສາສີ, ຕົວໜັງສືເຂັ້ມ ແລະ ການຈັດໜ້າ (.xls / .doc)',
-                'btn-export-raw': 'ສົ່ງອອກສະເພາະຂໍ້ມູນ (Raw)',
-                'desc-export-raw': 'ຕາຕະລາງທຳມະດາ ບໍ່ມີສີສັນ (.xlsx / .doc)',
+                'btn-export-main': 'ສົ່ງອອກ',
+                'lbl-export-title': 'ສົ່ງອອກເອກະສານ',
+                'lbl-export-scope': '1. ເລືອກຂໍ້ມູນທີ່ຈະສົ່ງອອກ',
+                'lbl-scope-current': 'ສະເພາະໜ້ານີ້', 'desc-scope-current': 'ສົ່ງອອກສະເພາະໜ້າທີ່ເປີດຢູ່',
+                'lbl-scope-all': 'ທັງໝົດທຸກໜ້າ', 'desc-scope-all': 'ໂຄງການ, Logframe, ແຜນ, ງົບ, ຄວາມສ່ຽງ, ຕິດຕາມ',
+                'lbl-export-format': '2. ເລືອກຮູບແບບໄຟລ໌',
                 'btn-cancel': 'ຍົກເລີກ',
                 'lbl-ready': 'ພ້ອມໃຊ້ງານ',
                 'lbl-filtering': 'ກຳລັງສະແດງສະເພາະ:',
@@ -877,12 +958,9 @@
         let currentLang = 'lo';
         let trackingYearCount = 0;
         let currentNumLevels = 4;
-        let planColumns = []; // Renamed from planMonths to planColumns to support both weeks and months
-        let currentPlanViewMode = 'monthly'; // 'monthly' or 'weekly'
+        let planColumns = []; 
+        let currentPlanViewMode = 'monthly';
 
-        // -----------------------------------------------------------------
-        // Firebase Cloud Cache Setup
-        // -----------------------------------------------------------------
         let db = null;
         let auth = null;
         let currentUser = null;
@@ -975,6 +1053,7 @@
                     projectDescLo: document.getElementById('proj-desc-lo')?.value || '',
                     logframeHTML: document.querySelector('.logframe-table').innerHTML,
                     trackingHTML: document.querySelector('.tracking-table') ? document.querySelector('.tracking-table').innerHTML : '',
+                    riskHTML: document.querySelector('.risk-table') ? document.querySelector('.risk-table').innerHTML : '',
                     trackingYearCount: trackingYearCount,
                     numLevels: currentNumLevels,
                     customHeaders: customHeaders,
@@ -1015,6 +1094,9 @@
                     if (data.trackingHTML && document.querySelector('.tracking-table')) {
                         document.querySelector('.tracking-table').innerHTML = data.trackingHTML;
                     }
+                    if (data.riskHTML && document.querySelector('.risk-table')) {
+                        document.querySelector('.risk-table').innerHTML = data.riskHTML;
+                    }
                     if (data.trackingYearCount !== undefined) trackingYearCount = data.trackingYearCount;
                     
                     if (data.numLevels !== undefined) {
@@ -1042,7 +1124,7 @@
                     }
 
                     setLanguage(currentLang);
-                    buildPlanningTimeline(); // Rebuild timeline & sync from logframe
+                    buildPlanningTimeline();
                     showToast("ດຶງຂໍ້ມູນຫຼ້າສຸດຈາກແຄສ Cloud ສຳເລັດ!", "success");
                 } else {
                     if (manualTrigger) {
@@ -1055,9 +1137,6 @@
             }
         }
 
-        // -----------------------------------------------------------------
-        // Core Logic
-        // -----------------------------------------------------------------
         function setLanguage(lang) {
             currentLang = lang;
             document.body.className = `h-screen flex flex-col overflow-hidden lang-${lang} show-levels-${currentNumLevels}`;
@@ -1102,7 +1181,6 @@
                 if(editableDiv) editableDiv.innerText = mainText;
             });
             
-            // Re-render planning status dropdowns if needed to reflect language
             document.querySelectorAll('.plan-status').forEach(select => {
                 const val = select.value;
                 select.innerHTML = `
@@ -1110,6 +1188,15 @@
                     <option value="progress" ${val === 'progress' ? 'selected' : ''}>${dict[lang]['opt-progress'] || dict['en']['opt-progress']}</option>
                     <option value="completed" ${val === 'completed' ? 'selected' : ''}>${dict[lang]['opt-completed'] || dict['en']['opt-completed']}</option>
                     <option value="delayed" ${val === 'delayed' ? 'selected' : ''}>${dict[lang]['opt-delayed'] || dict['en']['opt-delayed']}</option>
+                `;
+            });
+
+            document.querySelectorAll('.risk-level-select').forEach(select => {
+                const val = select.value;
+                select.innerHTML = `
+                    <option value="high" ${val === 'high' ? 'selected' : ''}>${dict[lang]['opt-high'] || dict['en']['opt-high']}</option>
+                    <option value="medium" ${val === 'medium' ? 'selected' : ''}>${dict[lang]['opt-medium'] || dict['en']['opt-medium']}</option>
+                    <option value="low" ${val === 'low' ? 'selected' : ''}>${dict[lang]['opt-low'] || dict['en']['opt-low']}</option>
                 `;
             });
         }
@@ -1124,7 +1211,6 @@
             currentNumLevels = parseInt(val);
             document.body.classList.remove('show-levels-2', 'show-levels-3', 'show-levels-4');
             document.body.classList.add('show-levels-' + currentNumLevels);
-            
             syncPlanningFromLogframe();
             syncBudget();
             syncTracking();
@@ -1152,13 +1238,8 @@
             return text.match(/^[0-9]+\./) && !isOutputRow(text) && !isActivityRow(text);
         }
 
-        // -----------------------------------------------------------------
-        // Generic Hide/Unhide Functions for Rows and Columns
-        // -----------------------------------------------------------------
         function hideColumn(colClass) {
             document.querySelectorAll(`.${colClass}`).forEach(el => el.classList.add('hidden'));
-            
-            // Show the respective unhide button based on the active tab
             const activeTab = document.querySelector('.tab-content:not(.hidden)').id;
             if(activeTab === 'tab-logframe') document.getElementById('btn-unhide-lf-cols').classList.remove('hidden');
             if(activeTab === 'tab-planning') document.getElementById('btn-unhide-pl-cols').classList.remove('hidden');
@@ -1181,7 +1262,6 @@
         function hideRow(btn) {
             const tr = btn.closest('tr');
             tr.classList.add('user-hidden');
-            
             const activeTab = document.querySelector('.tab-content:not(.hidden)').id;
             if(activeTab === 'tab-logframe') document.getElementById('btn-unhide-lf-rows').classList.remove('hidden');
             if(activeTab === 'tab-planning') document.getElementById('btn-unhide-pl-rows').classList.remove('hidden');
@@ -1195,16 +1275,21 @@
             document.getElementById(`btn-unhide-${tabPrefix}-rows`).classList.add('hidden');
         }
 
-        // -----------------------------------------------------------------
-        // Export Functions
-        // -----------------------------------------------------------------
-        let pendingExportType = '';
-
-        function openExportModal(type) {
-            pendingExportType = type;
+        function openExportModal() {
             const modal = document.getElementById('export-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            
+            const activeTabId = document.querySelector('.tab-content:not(.hidden)').id;
+            const currentRadio = document.querySelector('input[name="export-scope"][value="current"]');
+            if (activeTabId === 'tab-dashboard' || activeTabId === 'tab-settings') {
+                document.querySelector('input[name="export-scope"][value="all"]').checked = true;
+                currentRadio.disabled = true;
+                currentRadio.parentElement.classList.add('opacity-50');
+            } else {
+                currentRadio.disabled = false;
+                currentRadio.parentElement.classList.remove('opacity-50');
+            }
         }
 
         function closeExportModal() {
@@ -1213,43 +1298,216 @@
             modal.classList.remove('flex');
         }
 
-        function confirmExport(mode) {
+        function executeExport(format) {
+            const scope = document.querySelector('input[name="export-scope"]:checked').value;
             closeExportModal();
-            if (mode === 'pdf') {
-                exportPDF();
-            } else if (pendingExportType === 'excel') {
-                if (mode === 'format') exportExcelFormatted();
-                else exportExcelRaw();
-            } else if (pendingExportType === 'word') {
-                exportWord(mode);
-            }
+            
+            const snapshotDOM = generateExportSnapshot(scope);
+            
+            if (format === 'pdf') exportToPDF(snapshotDOM);
+            else if (format === 'excel') exportToExcel(snapshotDOM);
+            else if (format === 'word') exportToWord(snapshotDOM);
+            else if (format === 'html') exportToHTMLFile(snapshotDOM);
         }
 
-        function exportPDF() {
-            const activeTab = document.querySelector('.tab-content:not(.hidden)');
-            if (!activeTab) return;
+        function generateExportSnapshot(scope) {
+            const container = document.createElement('div');
+            container.className = 'export-snapshot bg-white';
             
-            document.body.classList.add('exporting'); // Hides UI elements safely
+            const style = document.createElement('style');
+            style.innerHTML = `
+                * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: auto;}
+                th, td { border: 1px solid #9ca3af; padding: 6px; vertical-align: top; font-size: 11px; }
+                th { background-color: #d1d5db; font-weight: bold; text-align: center; }
+                tr.blue-ribbon td { background-color: #93c5fd; font-weight: bold; color: #1e3a8a; }
+                .bg-blue-100 { background-color: #dbeafe !important; }
+                .bg-gray-100 { background-color: #f3f4f6 !important; }
+                .bg-gray-200 { background-color: #e5e7eb !important; }
+                .bg-blue-50 { background-color: #eff6ff !important; }
+                .bg-green-50 { background-color: #f0fdf4 !important; }
+                .bg-yellow-50 { background-color: #fefce8 !important; }
+                .bg-orange-50 { background-color: #fff7ed !important; }
+                .bg-purple-50 { background-color: #faf5ff !important; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .font-bold { font-weight: bold; }
+                h2 { font-size: 18px; margin-bottom: 10px; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
+                h3 { font-size: 14px; margin-top: 15px; margin-bottom: 5px; }
+                .page-break { page-break-before: always; }
+                .list-item { margin-bottom: 4px; display: block; }
+                .export-static-value { display: inline-block; width: 100%; }
+            `;
+            container.appendChild(style);
+
+            const tabsToExport = scope === 'all' 
+                ? ['tab-project', 'tab-logframe', 'tab-planning', 'tab-budget', 'tab-risk', 'tab-tracking'] 
+                : [document.querySelector('.tab-content:not(.hidden)').id];
+
+            tabsToExport.forEach((tabId, index) => {
+                const originalTab = document.getElementById(tabId);
+                if (!originalTab) return;
+                
+                const clone = originalTab.cloneNode(true);
+                clone.id = `export-${tabId}`;
+                clone.style.display = 'block';
+                if (index > 0) clone.classList.add('page-break');
+
+                clone.querySelectorAll('input, select, textarea').forEach(el => {
+                    const span = document.createElement('span');
+                    span.className = 'export-static-value';
+                    
+                    if (el.tagName === 'SELECT') {
+                        span.innerText = el.options[el.selectedIndex]?.text || '';
+                    } else if (el.type === 'date' || el.type === 'month') {
+                        span.innerText = el.value; 
+                        span.classList.add('text-[9px]'); 
+                    } else {
+                        span.innerText = el.value || '';
+                    }
+                    
+                    if (el.classList.contains('plan-status')) {
+                        if (el.value === 'completed') span.style.color = 'green';
+                        else if (el.value === 'progress') span.style.color = 'blue';
+                        else if (el.value === 'delayed') span.style.color = 'red';
+                        span.classList.add('font-bold');
+                    }
+
+                    if (el.classList.contains('risk-level-select')) {
+                        if (el.value === 'high') span.style.color = 'red';
+                        else if (el.value === 'medium') span.style.color = 'orange';
+                        else if (el.value === 'low') span.style.color = 'green';
+                        span.classList.add('font-bold');
+                    }
+
+                    el.parentNode.replaceChild(span, el);
+                });
+
+                clone.querySelectorAll('button, .hide-on-export, .add-btn, .filter-btn, .user-hidden, tr.hidden, colgroup').forEach(el => el.remove());
+
+                if (currentLang === 'en') clone.querySelectorAll('.lao-text').forEach(el => el.remove());
+                if (currentLang === 'lo') clone.querySelectorAll('.en-text').forEach(el => el.remove());
+
+                clone.querySelectorAll('.list-container').forEach(container => {
+                    const items = Array.from(container.querySelectorAll('.list-item'));
+                    const newCellContent = document.createElement('div');
+                    items.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'list-item';
+                        div.innerHTML = item.innerHTML;
+                        newCellContent.appendChild(div);
+                    });
+                    container.parentNode.replaceChild(newCellContent, container);
+                });
+
+                clone.querySelectorAll('*').forEach(el => {
+                    el.removeAttribute('contenteditable');
+                    const keepClasses = Array.from(el.classList).filter(c => c.startsWith('bg-') || c.startsWith('text-') || c.includes('font-') || c.includes('blue-ribbon') || c.includes('page-break') || c.includes('export-'));
+                    if (keepClasses.length > 0) el.className = keepClasses.join(' ');
+                    else el.removeAttribute('class');
+                });
+
+                container.appendChild(clone);
+            });
+
+            return container;
+        }
+
+        function exportToPDF(snapshotDOM) {
+            document.body.classList.add('exporting');
+            showToast("ກຳລັງສ້າງ PDF... ກະລຸນາລໍຖ້າ (Generating PDF...)", "success");
             
-            // Try to find the inner container or use the tab itself
-            const containerToExport = activeTab.querySelector('.table-container') || activeTab.querySelector('.planning-table-container') || activeTab.querySelector('.bg-white.border.rounded-lg') || activeTab;
-            
+            const tempWrapper = document.createElement('div');
+            tempWrapper.style.position = 'absolute';
+            tempWrapper.style.left = '-9999px';
+            tempWrapper.style.width = '1400px'; 
+            tempWrapper.appendChild(snapshotDOM);
+            document.body.appendChild(tempWrapper);
+
             const opt = {
                 margin:       0.3,
-                filename:     'Logframe_Export.pdf',
+                filename:     'Logframe_Project_Export.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, windowWidth: containerToExport.scrollWidth },
-                jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+                html2canvas:  { scale: 2, useCORS: true, letterRendering: true, windowWidth: 1400 },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' },
+                pagebreak:    { mode: ['css', 'legacy'] }
             };
 
-            showToast("ກຳລັງສ້າງ PDF... (Generating PDF...)", "success");
-            html2pdf().set(opt).from(containerToExport).save().then(() => {
+            html2pdf().set(opt).from(snapshotDOM).save().then(() => {
+                document.body.removeChild(tempWrapper);
                 document.body.classList.remove('exporting');
             }).catch(err => {
                 console.error(err);
+                document.body.removeChild(tempWrapper);
                 document.body.classList.remove('exporting');
                 showToast("ເກີດຂໍ້ຜິດພາດໃນການສ້າງ PDF", "error");
             });
+        }
+
+        function getFullHTMLWrapper(innerContent) {
+            return `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    body { font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif; font-size: 11pt; }
+                    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+                    th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; }
+                    th { background-color: #d1d5db; font-weight: bold; }
+                    tr.blue-ribbon td { background-color: #93c5fd; font-weight: bold; color: #1e3a8a; }
+                    .page-break { page-break-before: always; margin-top: 20px; }
+                    h2 { font-size: 16pt; margin-bottom: 10px; }
+                </style>
+            </head>
+            <body>${innerContent}</body>
+            </html>`;
+        }
+
+        function exportToExcel(snapshotDOM) {
+            const htmlStr = getFullHTMLWrapper(snapshotDOM.innerHTML);
+            const blob = new Blob([htmlStr], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = 'Logframe_Export.xls';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportToWord(snapshotDOM) {
+            const htmlStr = getFullHTMLWrapper(snapshotDOM.innerHTML);
+            const blob = new Blob(['\ufeff', htmlStr], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = 'Logframe_Export.doc';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function exportToHTMLFile(snapshotDOM) {
+            const htmlContent = `<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <title>Project Export</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap');
+        body { 
+            font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif; 
+            padding: 20px; 
+            background: #f3f4f6; 
+        }
+    </style>
+</head>
+<body>
+    ${snapshotDOM.outerHTML}
+</body>
+</html>`;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'Logframe_Export.html'; a.click(); URL.revokeObjectURL(url);
         }
 
         function saveAsHTML() {
@@ -1285,6 +1543,7 @@
                 projectDescLo: document.getElementById('proj-desc-lo')?.value || '',
                 logframeHTML: document.querySelector('.logframe-table').innerHTML,
                 trackingHTML: document.querySelector('.tracking-table') ? document.querySelector('.tracking-table').innerHTML : '',
+                riskHTML: document.querySelector('.risk-table') ? document.querySelector('.risk-table').innerHTML : '',
                 trackingYearCount: trackingYearCount,
                 numLevels: currentNumLevels,
                 customHeaders: customHeaders,
@@ -1318,6 +1577,9 @@
                     }
                     if (data.trackingHTML && document.querySelector('.tracking-table')) {
                         document.querySelector('.tracking-table').innerHTML = data.trackingHTML;
+                    }
+                    if (data.riskHTML && document.querySelector('.risk-table')) {
+                        document.querySelector('.risk-table').innerHTML = data.riskHTML;
                     }
                     if (data.trackingYearCount !== undefined) trackingYearCount = data.trackingYearCount;
                     
@@ -1356,130 +1618,6 @@
             reader.readAsText(file);
         }
 
-        function getCleanedTableHTML(isRaw = false) {
-            const activeTab = document.querySelector('.tab-content:not(.hidden)');
-            const tableSource = activeTab ? activeTab.querySelector('table') : document.querySelector('.logframe-table');
-            if (!tableSource) return "<table><tr><td>No data</td></tr></table>";
-            
-            const tableClone = tableSource.cloneNode(true);
-            tableClone.querySelectorAll('.add-btn').forEach(btn => btn.remove());
-            tableClone.querySelectorAll('.hide-on-export').forEach(btn => btn.remove());
-            
-            tableClone.querySelectorAll('tr.hidden, tr.user-hidden, th.hidden, td.hidden').forEach(el => el.remove());
-            
-            if (currentNumLevels < 3) tableClone.querySelectorAll('.level-3-section').forEach(el => el.remove());
-            if (currentNumLevels < 4) tableClone.querySelectorAll('.level-4-section').forEach(el => el.remove());
-
-            if (currentLang === 'en') {
-                tableClone.querySelectorAll('.lao-text').forEach(el => el.remove());
-            } else if (currentLang === 'lo') {
-                tableClone.querySelectorAll('.en-text').forEach(el => el.remove());
-            }
-
-            tableClone.querySelectorAll('.list-container').forEach(container => {
-                const items = Array.from(container.querySelectorAll('.list-item'));
-                const newCellContent = document.createElement('div');
-                items.forEach(item => {
-                    const div = document.createElement('div');
-                    div.innerHTML = item.innerHTML;
-                    div.style.marginBottom = '8px';
-                    newCellContent.appendChild(div);
-                });
-                container.parentNode.replaceChild(newCellContent, container);
-            });
-
-            if (isRaw) {
-                tableClone.removeAttribute('class');
-                tableClone.querySelectorAll('*').forEach(el => {
-                    el.removeAttribute('class');
-                    el.removeAttribute('style');
-                });
-            }
-
-            return tableClone.outerHTML;
-        }
-
-        function exportExcelRaw() {
-            if (typeof XLSX === 'undefined') return;
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = getCleanedTableHTML(true);
-            const tableToExport = tempDiv.querySelector('table');
-            tableToExport.querySelectorAll('tr').forEach(tr => {
-                if(tr.querySelector('td') && tr.querySelector('td').colSpan >= 4 && tr.innerText.trim() === '') tr.remove();
-            });
-            const wb = XLSX.utils.table_to_book(tableToExport, {sheet: "ExportData"});
-            XLSX.writeFile(wb, 'Logframe_Export.xlsx');
-        }
-
-        function exportExcelFormatted() {
-            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>table { border-collapse: collapse; } th, td { border: 1px solid #9ca3af; padding: 5px; vertical-align: top; } th { background-color: #d1d5db; font-weight: bold; } tr.blue-ribbon td { background-color: #93c5fd; font-weight: bold; color: #1e3a8a; } .lao-text{ color: #4b5563; font-size: 0.95em; }</style></head><body>";
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = getCleanedTableHTML(false);
-            const tableToExport = tempDiv.querySelector('table');
-            tableToExport.querySelectorAll('tr').forEach(tr => {
-                if(tr.querySelector('td') && tr.querySelector('td').colSpan >= 4 && tr.innerText.trim() === '') tr.remove();
-            });
-            const sourceHTML = header + tableToExport.outerHTML + "</body></html>";
-            const blob = new Blob([sourceHTML], { type: 'application/vnd.ms-excel' });
-            const url = URL.createObjectURL(blob);
-            const fileDownload = document.createElement("a");
-            fileDownload.href = url;
-            fileDownload.download = 'Logframe_Export.xls';
-            fileDownload.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function exportWord(mode) {
-            let style = "";
-            if (mode === 'format') {
-                style = "<style>table { border-collapse: collapse; width: 100%; font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif; font-size: 11pt; } th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; } th { background-color: #d1d5db; } tr.blue-ribbon td { background-color: #93c5fd; font-weight: bold; } .lao-text{ color: #4b5563; font-size: 0.95em;}</style>";
-            } else {
-                style = "<style>table { border-collapse: collapse; width: 100%; font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif; font-size: 11pt; } th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; } .lao-text{ font-size: 0.95em; }</style>";
-            }
-
-            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export</title>" + style + "</head><body>";
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = getCleanedTableHTML(mode === 'raw');
-            const tableToExport = tempDiv.querySelector('table');
-            tableToExport.querySelectorAll('tr').forEach(tr => {
-                if(tr.querySelector('td') && tr.querySelector('td').colSpan >= 4 && tr.innerText.trim() === '') tr.remove();
-            });
-            const sourceHTML = header + tableToExport.outerHTML + "</body></html>";
-            
-            const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
-            const url = URL.createObjectURL(blob);
-            const fileDownload = document.createElement("a");
-            fileDownload.href = url;
-            fileDownload.download = 'Logframe_Export.doc';
-            fileDownload.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // -----------------------------------------------------------------
-        // Formatting & Tab Navigation
-        // -----------------------------------------------------------------
-        let savedSelectionRange = null;
-
-        async function pasteValue() {
-            const sel = window.getSelection();
-            if (sel.rangeCount > 0) {
-                savedSelectionRange = sel.getRangeAt(0);
-            }
-            
-            try {
-                // Try to read from clipboard directly
-                const text = await navigator.clipboard.readText();
-                if (savedSelectionRange) {
-                    sel.removeAllRanges();
-                    sel.addRange(savedSelectionRange);
-                }
-                document.execCommand('insertText', false, text);
-            } catch (err) {
-                console.warn('Clipboard read failed:', err);
-                showToast('ບຣາວເຊີປ້ອງກັນການວາງອັດຕະໂນມັດ, ກະລຸນາກົດປຸ່ມ Ctrl+V ເພື່ອວາງແທນ', 'error');
-            }
-        }
-
         function execCmd(command, value = null) {
             document.execCommand(command, false, value);
             setTimeout(() => {
@@ -1507,7 +1645,7 @@
             }
 
             if (tabId === 'dashboard') syncDashboard();
-            if (tabId === 'planning') syncPlanningFromLogframe(); // Gantt update logic added here
+            if (tabId === 'planning') syncPlanningFromLogframe();
             if (tabId === 'budget') syncBudget();
             if (tabId === 'tracking') syncTracking();
         }
@@ -1516,10 +1654,9 @@
         let progressChartInstance = null;
 
         function syncDashboard() {
-            syncBudget(); // Ensure budget is calculated
-            syncTracking(); // Ensure tracking is calculated
+            syncBudget();
+            syncTracking();
             
-            // 1. Calculate Budget Stats
             const budgetTbody = document.getElementById('budget-tbody');
             const activityLabels = [];
             const budgetData = [];
@@ -1528,7 +1665,7 @@
             
             if (budgetTbody) {
                 budgetTbody.querySelectorAll('tr').forEach(tr => {
-                    if (tr.classList.contains('user-hidden')) return; // Ignore hidden rows in stats
+                    if (tr.classList.contains('user-hidden')) return;
                     const actName = tr.cells[0]?.textContent.trim().split(':')[0] || 'Unknown';
                     const actTotal = parseFloat(tr.cells[5]?.textContent.replace(/,/g, '')) || 0;
                     if (actTotal > 0) {
@@ -1543,7 +1680,6 @@
             document.getElementById('dash-total-budget').innerText = totalBudget.toLocaleString('en-US', {minimumFractionDigits: 2});
             document.getElementById('dash-total-activities').innerText = totalActivities;
 
-            // 2. Calculate Progress Stats
             const trackingTbody = document.getElementById('tracking-tbody');
             const indicatorLabels = [];
             const progressData = [];
@@ -1568,7 +1704,6 @@
             const avgProgress = countIndicators > 0 ? Math.round(sumProgress / countIndicators) : 0;
             document.getElementById('dash-avg-progress').innerText = avgProgress + '%';
 
-            // 3. Render Charts
             const ctxBudget = document.getElementById('budgetChart');
             const ctxProgress = document.getElementById('progressChart');
             
@@ -1615,7 +1750,6 @@
             let maxItems = 0;
             lists.forEach(list => maxItems = Math.max(maxItems, list.querySelectorAll('.list-item').length));
 
-            // Create elements (DOM writes)
             lists.forEach(list => {
                 const isIndicatorList = list.closest('td').classList.contains('col-lf-ind');
                 const items = list.querySelectorAll('.list-item');
@@ -1641,23 +1775,21 @@
                 }
             });
 
-            // Optimize Layout Thrashing: Batch Read then Batch Write
             const heightsMatrix = [];
             for (let i = 0; i < maxItems; i++) {
                 lists.forEach(list => { 
                     const item = list.querySelectorAll('.list-item')[i]; 
-                    if (item) item.style.height = 'auto'; // Write before read
+                    if (item) item.style.height = 'auto'; 
                 });
                 
                 let rowHeights = [];
                 lists.forEach(list => { 
                     const item = list.querySelectorAll('.list-item')[i]; 
-                    if (item) rowHeights.push(item.offsetHeight); // Batch Read
+                    if (item) rowHeights.push(item.offsetHeight); 
                 });
-                heightsMatrix.push(Math.max(...rowHeights, 45)); // 45 is min-height
+                heightsMatrix.push(Math.max(...rowHeights, 45)); 
             }
 
-            // Batch Write
             for (let i = 0; i < maxItems; i++) {
                 const maxHeight = heightsMatrix[i];
                 lists.forEach(list => { 
@@ -1820,18 +1952,15 @@
                 </div>
             `;
 
-            // Calculating sequential prefix
             let newPrefix = '';
             if (referenceBtn) {
                 const tr = referenceBtn.closest('tr');
                 if (tr.classList.contains('blue-ribbon')) {
-                    // Extract parent prefix to use as base for children
                     const enText = tr.querySelector('.en-text')?.textContent || '';
                     const match = enText.match(/(?:Goal\s*|Output\s*)?([\w\d]+(?:\.[\w\d]+)*)/i);
                     const parentPrefix = match ? match[1] : '';
                     newPrefix = parentPrefix ? parentPrefix + '.1' : '1';
                 } else {
-                    // Extract sibling prefix to increment
                     const currentPrefix = tr.dataset.prefix || '';
                     if (currentPrefix) {
                         newPrefix = incrementPrefix(currentPrefix);
@@ -2037,7 +2166,6 @@
 
                 if (row.classList.contains('sync-row')) syncRowHeights(row);
                 
-                // Sync Ribbon Title
                 if (cell.cellIndex === 0 && row.dataset.ref) {
                     const enDiv = cell.querySelector('.en-text');
                     const laDiv = cell.querySelector('.lao-text');
@@ -2052,7 +2180,6 @@
                     });
                 }
 
-                // Sync AutoNumbering to LA and Indicators
                 if (cell.cellIndex === 0 && e.target.classList.contains('en-text')) {
                     const enText = e.target.textContent.trim();
                     const match = enText.match(/([\w\d]+(?:\.[\w\d]+)*)/);
@@ -2093,7 +2220,6 @@
             });
         }
 
-        // Filtering Logic
         let activeFilterPrefix = null;
 
         function filterByGoal(btn) {
@@ -2161,16 +2287,12 @@
             });
         }
 
-        // --- Planning Gantt Logic ---
-        
-        // Helper function to get weeks in a month
         function getWeeksInMonth(year, month) {
             const weeks = [];
             const firstDate = new Date(year, month - 1, 1);
             const lastDate = new Date(year, month, 0);
             
             let currentWeekStart = new Date(firstDate);
-            // Adjust to Monday if first day is not Monday
             const dayOfWeek = currentWeekStart.getDay();
             const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
             currentWeekStart.setDate(currentWeekStart.getDate() + offsetToMonday);
@@ -2180,11 +2302,9 @@
                 let weekEnd = new Date(currentWeekStart);
                 weekEnd.setDate(weekEnd.getDate() + 6);
                 
-                // Cap weekEnd to the last day of the month if it spills over
                 let actualWeekEnd = new Date(weekEnd);
                 if (actualWeekEnd > lastDate) actualWeekEnd = new Date(lastDate);
                 
-                // Cap weekStart to first day of the month if it started before
                 let actualWeekStart = new Date(currentWeekStart);
                 if (actualWeekStart < firstDate) actualWeekStart = new Date(firstDate);
 
@@ -2451,7 +2571,6 @@
             const tbody = document.querySelector('.planning-table tbody');
             if (!tbody) return;
 
-            // Pre-calculate column dates once to boost performance
             const colTimes = planColumns.map(col => ({
                 start: new Date(col.start).setHours(0,0,0,0),
                 end: new Date(col.end).setHours(23,59,59,999),
@@ -2462,7 +2581,7 @@
                 const startInput = tr.querySelector('.start-date');
                 const endInput = tr.querySelector('.end-date');
                 const statusSelect = tr.querySelector('.plan-status');
-                const ganttCells = tr.querySelectorAll('.gantt-cell'); // Cache nodes
+                const ganttCells = tr.querySelectorAll('.gantt-cell'); 
 
                 if (startInput && endInput && startInput.value && endInput.value) {
                     const taskStart = new Date(startInput.value).setHours(0,0,0,0);
@@ -2605,9 +2724,7 @@
             if (type === 'pct') {
                 if (!text.includes('%')) element.innerText = text + '%';
             } else if (type === 'rate') {
-                // Allows user to freely input formats like "1:5", "2/3" without forcing automatic symbol formatting
                 if (!text.includes(':') && !text.includes('/')) {
-                    // Do not forcefully strip or format unless necessary
                 }
             } else {
                 if (text.includes('%')) element.innerText = text.replace(/%/g, '');
@@ -2626,6 +2743,53 @@
             
             const trackActual = tr.querySelector('.track-actual');
             if(trackActual) calcProgress(trackActual);
+        }
+
+        function addRiskRow() {
+            const tbody = document.getElementById('risk-tbody');
+            const rowCount = tbody.querySelectorAll('tr').length + 1;
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50 group/row';
+            tr.innerHTML = `
+                <td class="px-4 py-2 border-r text-center font-medium row-num">${rowCount}</td>
+                <td class="px-4 py-2 border-r editable-cell" contenteditable="true"></td>
+                <td class="px-4 py-2 border-r text-center align-middle">
+                    <select class="text-xs border border-gray-300 rounded p-1 w-full outline-none focus:border-blue-400 bg-white cursor-pointer risk-level-select" onchange="updateRiskColor(this)">
+                        <option value="high">${dict[currentLang]['opt-high'] || 'High'}</option>
+                        <option value="medium" selected>${dict[currentLang]['opt-medium'] || 'Medium'}</option>
+                        <option value="low">${dict[currentLang]['opt-low'] || 'Low'}</option>
+                    </select>
+                </td>
+                <td class="px-4 py-2 border-r editable-cell" contenteditable="true"></td>
+                <td class="px-4 py-2 border-r editable-cell" contenteditable="true"></td>
+                <td class="px-2 py-2 text-center hide-on-export">
+                    <button onclick="deleteRiskRow(this)" class="text-red-400 hover:text-red-600 opacity-0 group-hover/row:opacity-100 transition-opacity"><i class="fas fa-trash-alt"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            updateRiskRowNumbers();
+            
+            // Trigger color update manually for new row
+            const newSelect = tr.querySelector('.risk-level-select');
+            if (newSelect) updateRiskColor(newSelect);
+        }
+
+        function deleteRiskRow(btn) {
+            btn.closest('tr').remove();
+            updateRiskRowNumbers();
+        }
+
+        function updateRiskRowNumbers() {
+            document.querySelectorAll('#risk-tbody tr').forEach((tr, index) => {
+                const td = tr.querySelector('.row-num');
+                if(td) td.innerText = index + 1;
+            });
+        }
+
+        function updateRiskColor(select) {
+            if(select.value === 'high') select.className = 'text-xs border border-red-300 bg-red-50 text-red-700 font-bold rounded p-1 w-full outline-none cursor-pointer risk-level-select';
+            else if(select.value === 'medium') select.className = 'text-xs border border-orange-300 bg-orange-50 text-orange-700 font-bold rounded p-1 w-full outline-none cursor-pointer risk-level-select';
+            else select.className = 'text-xs border border-green-300 bg-green-50 text-green-700 font-bold rounded p-1 w-full outline-none cursor-pointer risk-level-select';
         }
 
         function addTrackingYear() {
@@ -2988,7 +3152,6 @@
         window.saveAsHTML = saveAsHTML;
         window.saveAsJSON = saveAsJSON;
         window.importJSON = importJSON;
-        window.pasteValue = pasteValue;
         window.execCmd = execCmd;
         window.switchTab = switchTab;
         window.changeNumLevels = changeNumLevels;
@@ -3011,8 +3174,7 @@
         window.updateCustomHeader = updateCustomHeader;
         window.openExportModal = openExportModal;
         window.closeExportModal = closeExportModal;
-        window.confirmExport = confirmExport;
-        window.exportPDF = exportPDF;
+        window.executeExport = executeExport;
         window.syncDashboard = syncDashboard;
         window.saveToCache = saveToCache;
         window.loadFromCache = loadFromCache;
@@ -3030,13 +3192,14 @@
         window.unhideAllNotesCols = unhideAllNotesCols;
         window.hideYear = hideYear;
         window.unhideAllYears = unhideAllYears;
+        window.addRiskRow = addRiskRow;
+        window.deleteRiskRow = deleteRiskRow;
+        window.updateRiskColor = updateRiskColor;
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
-            // Disable native browser object resizing (removes black dots in Firefox)
             try { document.execCommand("enableObjectResizing", false, false); } catch(e) {}
             
-            // Inject delete buttons to existing static list-items to avoid massive HTML diff
             document.querySelectorAll('.list-item').forEach(item => {
                 if (!item.classList.contains('group/item')) {
                     item.classList.add('relative', 'group/item');
@@ -3051,17 +3214,17 @@
                 }
             });
 
+            // Init risk colors
+            document.querySelectorAll('.risk-level-select').forEach(select => updateRiskColor(select));
+
             switchTab('logframe');
             setLanguage('lo');
             setupLiveSync();
             setTimeout(syncAllHeights, 100);
             
-            // Start Firebase setup (Rule 3)
             initFirebase();
 
-            // Setup Keyboard Shortcuts
             document.addEventListener('keydown', function(e) {
-                // Shortcut: Ctrl + S (Standard Save)
                 if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 's') {
                     e.preventDefault();
                     saveToCache();
